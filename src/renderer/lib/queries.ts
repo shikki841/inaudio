@@ -1,0 +1,67 @@
+import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { HistoryQuery } from '@shared/domain/history';
+import type { ModelId } from '@shared/domain/models';
+import type { Settings, SettingsPatch } from '@shared/domain/settings';
+import { api } from './api';
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 },
+  },
+});
+
+export const keys = {
+  settings: ['settings'] as const,
+  status: ['status'] as const,
+  history: (query: HistoryQuery) => ['history', query] as const,
+  historyAll: ['history'] as const,
+};
+
+export function useSettings() {
+  return useQuery({ queryKey: keys.settings, queryFn: () => api.settings.get(), staleTime: Infinity });
+}
+
+export function useUpdateSettings() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: SettingsPatch) => api.settings.update(patch),
+    onMutate: async (patch) => {
+      await client.cancelQueries({ queryKey: keys.settings });
+      const previous = client.getQueryData<Settings>(keys.settings);
+      if (previous) client.setQueryData(keys.settings, deepMerge(previous, patch));
+      return { previous };
+    },
+    onError: (_error, _patch, context) => {
+      if (context?.previous) client.setQueryData(keys.settings, context.previous);
+    },
+    onSuccess: (next) => client.setQueryData(keys.settings, next),
+  });
+}
+
+export function useSystemStatus() {
+  return useQuery({ queryKey: keys.status, queryFn: () => api.system.status(), refetchInterval: 15_000 });
+}
+
+export function useHistory(query: HistoryQuery) {
+  return useQuery({ queryKey: keys.history(query), queryFn: () => api.history.list(query), staleTime: 0 });
+}
+
+export function useModelAction() {
+  const client = useQueryClient();
+  const refresh = () => client.invalidateQueries({ queryKey: keys.status });
+  return {
+    download: useMutation({ mutationFn: (id: ModelId) => api.models.download(id), onSettled: refresh }),
+    cancel: useMutation({ mutationFn: (id: ModelId) => api.models.cancel(id), onSettled: refresh }),
+    remove: useMutation({ mutationFn: (id: ModelId) => api.models.remove(id), onSettled: refresh }),
+    load: useMutation({ mutationFn: (id: ModelId) => api.models.load(id), onSettled: refresh }),
+  };
+}
+
+function deepMerge<T>(base: T, patch: unknown): T {
+  if (typeof patch !== 'object' || patch === null || Array.isArray(patch)) return patch as T;
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+  for (const [key, value] of Object.entries(patch)) {
+    out[key] = deepMerge(out[key], value);
+  }
+  return out as T;
+}
