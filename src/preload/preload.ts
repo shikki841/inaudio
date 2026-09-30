@@ -16,6 +16,8 @@ const api: InaudioApi = {
     status: () => ipcRenderer.invoke(IPC.systemStatus),
     openLink: (id) => ipcRenderer.invoke(IPC.systemOpenLink, id),
     revealModels: () => ipcRenderer.invoke(IPC.systemRevealModels),
+    window: (action) => ipcRenderer.invoke(IPC.systemWindow, action),
+    menu: (command) => ipcRenderer.invoke(IPC.systemMenu, command),
   },
   settings: {
     get: () => ipcRenderer.invoke(IPC.settingsGet),

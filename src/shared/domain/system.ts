@@ -31,6 +31,14 @@ export interface SystemStatus {
   models: ModelStatus[];
   worker: WorkerHealth;
   onBattery: boolean;
+  window: {
+    maximized: boolean;
+    minimizable: boolean;
+    maximizable: boolean;
+    closable: boolean;
+    focused: boolean;
+    fullscreen: boolean;
+  };
 }
 
 export type DictationPhase = 'idle' | 'listening' | 'transcribing' | 'inserting' | 'error';
@@ -42,6 +50,19 @@ export interface ModelProgressEvent {
   bytesTotal: number;
   error?: string;
 }
+
+export type WindowAction = 'minimize' | 'maximize-toggle' | 'close';
+
+export type AppMenuCommand =
+  | 'file.open-models-folder'
+  | 'file.run-setup'
+  | 'file.quit'
+  | 'view.dictation'
+  | 'view.history'
+  | 'view.read-aloud'
+  | 'view.models'
+  | 'view.audio'
+  | 'view.settings';
 
 export type AppCommand =
   | 'dictation:toggle'

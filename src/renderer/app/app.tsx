@@ -77,10 +77,23 @@ function useHoldToTalk(enabled: boolean) {
   }, [enabled]);
 }
 
+function useAppearance() {
+  const { data: settings } = useSettings();
+  useEffect(() => {
+    if (!settings) return;
+    const root = document.documentElement;
+    root.dataset.fontSize = settings.appearance.fontSize;
+    root.dataset.fontFamily = settings.appearance.fontFamily;
+    root.dataset.motion = settings.appearance.animations;
+    root.dataset.accentTone = settings.appearance.accentTone;
+  }, [settings]);
+}
+
 export function App() {
   const { data: settings, isLoading } = useSettings();
   const route = useUi((s) => s.route);
   useMainEvents();
+  useAppearance();
   useHoldToTalk(settings?.dictation.mode === 'push-to-talk');
 
   if (isLoading || !settings) {

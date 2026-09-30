@@ -3,6 +3,8 @@ export const IPC = {
   systemStatus: 'system:status',
   systemOpenLink: 'system:open-link',
   systemRevealModels: 'system:reveal-models',
+  systemWindow: 'system:window',
+  systemMenu: 'system:menu',
   settingsGet: 'settings:get',
   settingsUpdate: 'settings:update',
   modelsList: 'models:list',

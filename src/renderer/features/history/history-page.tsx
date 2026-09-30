@@ -4,6 +4,7 @@ import { useDeferredValue, useState } from 'react';
 import { MODEL_CATALOG } from '@shared/domain/models';
 import { ConfirmDialog } from '@renderer/components/ui/alert-dialog';
 import { Button } from '@renderer/components/ui/button';
+import { EmptyState } from '@renderer/components/ui/empty-state';
 import { IconButton } from '@renderer/components/ui/icon-button';
 import { PageHeader } from '@renderer/components/ui/layout';
 import { api } from '@renderer/lib/api';
@@ -86,9 +87,10 @@ export function HistoryPage() {
       </ul>
 
       {data && data.items.length === 0 && (
-        <p className="py-16 text-center text-sm text-muted">
-          {deferred ? 'No transcripts match that search.' : 'Nothing here yet. Dictate something and it will show up here.'}
-        </p>
+        <EmptyState
+          title={deferred ? 'No transcripts found' : 'No transcripts yet'}
+          description={deferred ? 'Try a different search phrase.' : 'Dictate something and it will appear here automatically.'}
+        />
       )}
       {data && data.total > data.items.length && (
         <div className="flex justify-center pt-4">

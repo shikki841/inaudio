@@ -2,10 +2,12 @@ import type { HistoryPage, HistoryQuery, Transcript } from '../domain/history';
 import type { ModelId, ModelStatus, VoiceId } from '../domain/models';
 import type { Settings, SettingsPatch } from '../domain/settings';
 import type {
+  AppMenuCommand,
   AppCommand,
   DictationPhase,
   ModelProgressEvent,
   SystemStatus,
+  WindowAction,
 } from '../domain/system';
 import type { ExternalLinkId } from './schemas';
 
@@ -30,6 +32,8 @@ export interface InaudioApi {
     status(): Promise<SystemStatus>;
     openLink(id: ExternalLinkId): Promise<void>;
     revealModels(): Promise<void>;
+    window(action: WindowAction): Promise<void>;
+    menu(command: AppMenuCommand): Promise<void>;
   };
   settings: {
     get(): Promise<Settings>;

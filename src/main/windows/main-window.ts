@@ -23,10 +23,8 @@ export function createMainWindow(): BrowserWindow {
     title: 'Inaudio',
     icon: appIcon(),
     backgroundColor: nativeTheme.shouldUseDarkColors ? CANVAS.dark : CANVAS.light,
-    titleBarStyle: 'hidden',
-    ...(process.platform === 'darwin'
-      ? { trafficLightPosition: { x: 16, y: 14 } }
-      : { titleBarOverlay: titleBarColors() }),
+    frame: false,
+    titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

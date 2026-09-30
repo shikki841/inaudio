@@ -113,15 +113,83 @@ export function SettingsPage() {
       </Section>
 
       <Section title="App">
-        <Row label="Appearance">
-          <Segmented<Settings['appearance']['theme']>
-            label="Theme"
-            value={settings.appearance.theme}
-            onValueChange={(theme) => update.mutate({ appearance: { theme } })}
+        <div className="grid gap-3 py-3">
+          <p className="text-sm font-medium">Appearance</p>
+          <div className="grid gap-2 md:grid-cols-3">
+            {(['system', 'light', 'dark'] as const).map((theme) => (
+              <button
+                key={theme}
+                type="button"
+                onClick={() => update.mutate({ appearance: { theme } })}
+                className={`rounded-[12px] border p-3 text-left transition-colors ${
+                  settings.appearance.theme === theme ? 'border-accent bg-accent-soft/50' : 'border-line bg-surface hover:bg-sunken'
+                }`}
+              >
+                <p className="text-sm font-semibold capitalize">{theme}</p>
+                <p className="text-xs text-muted">{theme === 'dark' ? 'Pure dark UI' : theme === 'light' ? 'Bright surfaces' : 'Follow OS setting'}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+        <Row label="Font size">
+          <Segmented<Settings['appearance']['fontSize']>
+            label="Font size"
+            value={settings.appearance.fontSize}
+            onValueChange={(fontSize) => update.mutate({ appearance: { fontSize } })}
             options={[
+              { value: 'sm', label: 'Small' },
+              { value: 'md', label: 'Default' },
+              { value: 'lg', label: 'Large' },
+            ]}
+          />
+        </Row>
+        <Row label="Font family">
+          <Segmented<Settings['appearance']['fontFamily']>
+            label="Font family"
+            value={settings.appearance.fontFamily}
+            onValueChange={(fontFamily) => update.mutate({ appearance: { fontFamily } })}
+            options={[
+              { value: 'inter', label: 'Inter' },
               { value: 'system', label: 'System' },
-              { value: 'light', label: 'Light' },
-              { value: 'dark', label: 'Dark' },
+            ]}
+          />
+        </Row>
+        <Row label="Animations">
+          <Segmented<Settings['appearance']['animations']>
+            label="Animations"
+            value={settings.appearance.animations}
+            onValueChange={(animations) => update.mutate({ appearance: { animations } })}
+            options={[
+              { value: 'full', label: 'Full' },
+              { value: 'reduced', label: 'Reduced' },
+              { value: 'off', label: 'Off' },
+            ]}
+          />
+        </Row>
+        <Row label="Display width">
+          <Segmented<Settings['appearance']['contentWidth']>
+            label="Display width"
+            value={settings.appearance.contentWidth}
+            onValueChange={(contentWidth) => update.mutate({ appearance: { contentWidth } })}
+            options={[
+              { value: 'compact', label: 'Compact' },
+              { value: 'default', label: 'Default' },
+              { value: 'wide', label: 'Wide' },
+            ]}
+          />
+        </Row>
+        <Row label="Accent color">
+          <Select
+            label="Accent color"
+            className="min-w-32"
+            value={settings.appearance.accentTone}
+            onValueChange={(accentTone) => update.mutate({ appearance: { accentTone } })}
+            options={[
+              { value: 'blue', label: 'Blue' },
+              { value: 'violet', label: 'Violet' },
+              { value: 'green', label: 'Green' },
+              { value: 'amber', label: 'Amber' },
+              { value: 'rose', label: 'Rose' },
             ]}
           />
         </Row>
