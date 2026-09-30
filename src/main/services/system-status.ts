@@ -21,7 +21,7 @@ export function collectSystemStatus(deps: {
   inference: InferenceHost;
   shortcuts: ShortcutService;
   inserter: TextInserter;
-}): SystemStatus {
+}): Omit<SystemStatus, 'window'> {
   return {
     platform: process.platform,
     arch: process.arch,

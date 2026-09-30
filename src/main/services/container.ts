@@ -72,8 +72,21 @@ export function createServices(options: {
     shortcuts: options.shortcuts,
     tray: options.tray,
     window: options.window,
-    status: () =>
-      collectSystemStatus({ paths, models, inference, shortcuts: options.shortcuts, inserter }),
+    status: () => {
+      const base = collectSystemStatus({ paths, models, inference, shortcuts: options.shortcuts, inserter });
+      const win = options.window();
+      return {
+        ...base,
+        window: {
+          maximized: !!win && !win.isDestroyed() && win.isMaximized(),
+          minimizable: !!win && !win.isDestroyed() && win.isMinimizable(),
+          maximizable: !!win && !win.isDestroyed() && win.isMaximizable(),
+          closable: !!win && !win.isDestroyed() && win.isClosable(),
+          focused: !!win && !win.isDestroyed() && win.isFocused(),
+          fullscreen: !!win && !win.isDestroyed() && win.isFullScreen(),
+        },
+      };
+    },
     ensureLoaded,
     readClipboard: async () => (await clipboard.readText()).slice(0, MAX_TRANSCRIPT_CHARS),
   };

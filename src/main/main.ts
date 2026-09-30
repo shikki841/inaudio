@@ -10,7 +10,7 @@ import { applySessionPolicy } from './security/hardening';
 import { createServices, type Services } from './services/container';
 import { ShortcutService } from './services/shortcuts';
 import { TrayService } from './services/tray';
-import { createMainWindow, titleBarColors } from './windows/main-window';
+import { createMainWindow } from './windows/main-window';
 
 if (started) app.quit();
 
@@ -73,6 +73,15 @@ function bootstrap(): void {
     win.on('closed', () => {
       if (mainWindow === win) mainWindow = null;
     });
+    const emitWindowStatus = () => send(EVENTS.statusChanged);
+    win.on('maximize', emitWindowStatus);
+    win.on('unmaximize', emitWindowStatus);
+    win.on('minimize', emitWindowStatus);
+    win.on('restore', emitWindowStatus);
+    win.on('focus', emitWindowStatus);
+    win.on('blur', emitWindowStatus);
+    win.on('enter-full-screen', emitWindowStatus);
+    win.on('leave-full-screen', emitWindowStatus);
     return win;
   }
 
@@ -95,9 +104,6 @@ function bootstrap(): void {
 
     const applyTheme = () => {
       nativeTheme.themeSource = s.settings.get().appearance.theme;
-      if (process.platform !== 'darwin' && mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.setTitleBarOverlay(titleBarColors());
-      }
     };
     applyTheme();
     nativeTheme.on('updated', applyTheme);

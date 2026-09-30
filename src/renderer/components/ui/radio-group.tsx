@@ -26,7 +26,7 @@ export function RadioGroup<T extends string>({
         <label
           key={option.value}
           className={cn(
-            'flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2.5 hover:bg-sunken',
+            'flex cursor-pointer items-start gap-3 rounded-[6px] px-3 py-2.5 hover:bg-sunken',
             option.disabled && 'cursor-not-allowed opacity-50',
           )}
         >

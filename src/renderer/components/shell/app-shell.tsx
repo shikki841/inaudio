@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useSystemStatus } from '@renderer/lib/queries';
+import { useSettings, useSystemStatus } from '@renderer/lib/queries';
 import { Sidebar } from './sidebar';
 import { StatusBar } from './status-bar';
 
@@ -9,14 +9,16 @@ import { StatusBar } from './status-bar';
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const { data: status } = useSystemStatus();
+  const { data: settings } = useSettings();
   const mac = status?.platform === 'darwin';
+  const maxWidth = settings?.appearance.contentWidth === 'compact' ? 'max-w-[840px]' : settings?.appearance.contentWidth === 'wide' ? 'max-w-[1160px]' : 'max-w-[1020px]';
   return (
     <div className="flex h-full bg-canvas">
       <Sidebar macInset={mac} />
       <div className="flex min-w-0 flex-1 flex-col">
         <StatusBar />
-        <main className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] rounded-t-2xl bg-surface mr-3 shadow-[0_0_0_1px_var(--line)]">
-          <div className="mx-auto w-full max-w-[880px] px-10 pt-9 pb-12">{children}</div>
+        <main className="mr-3 min-h-0 flex-1 overflow-y-auto rounded-t-[18px] bg-surface shadow-[0_0_0_1px_var(--line)] [scrollbar-gutter:stable]">
+          <div className={`mx-auto w-full ${maxWidth} px-9 pt-9 pb-9`}>{children}</div>
         </main>
       </div>
     </div>

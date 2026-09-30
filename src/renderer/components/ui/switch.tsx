@@ -5,7 +5,7 @@ export function Switch({ className, ...props }: SwitchPrimitive.SwitchProps) {
   return (
     <SwitchPrimitive.Root
       className={cn(
-        'relative h-5 w-9 shrink-0 rounded-full bg-line-strong transition-colors data-[state=checked]:bg-accent disabled:opacity-50',
+        'relative h-5 w-9 shrink-0 rounded-[999px] bg-line-strong transition-colors data-[state=checked]:bg-accent disabled:opacity-50',
         className,
       )}
       {...props}

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { modelIdSchema, voiceIdSchema } from '../domain/models';
 import { historyQuerySchema, MAX_TRANSCRIPT_CHARS } from '../domain/history';
 import { settingsPatchSchema } from '../domain/settings';
+import type { AppMenuCommand, WindowAction } from '../domain/system';
 
 /** 16 kHz mono float32 for at most 10 minutes. */
 export const MAX_AUDIO_SAMPLES = 16_000 * 60 * 10;
@@ -35,4 +36,18 @@ export const schemas = {
   }),
   historyQuery: historyQuerySchema,
   historyId: z.string().uuid(),
+  windowAction: z.enum(['minimize', 'maximize-toggle', 'close'] as [WindowAction, ...WindowAction[]]),
+  menuCommand: z.enum(
+    [
+      'file.open-models-folder',
+      'file.run-setup',
+      'file.quit',
+      'view.dictation',
+      'view.history',
+      'view.read-aloud',
+      'view.models',
+      'view.audio',
+      'view.settings',
+    ] as [AppMenuCommand, ...AppMenuCommand[]],
+  ),
 };

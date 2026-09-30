@@ -25,7 +25,7 @@ export function Section({ title, description, children, className }: { title: st
     <section className={cn('grid gap-1 py-6 first:pt-0', className)}>
       <h2 className="text-[13px] font-semibold tracking-wide text-faint uppercase">{title}</h2>
       {description && <p className="text-[13px] text-muted">{description}</p>}
-      <div className="mt-2 divide-y divide-line">{children}</div>
+      <div className="mt-3 divide-y divide-line">{children}</div>
     </section>
   );
 }
@@ -33,7 +33,7 @@ export function Section({ title, description, children, className }: { title: st
 /** One setting: label and description on the left, control on the right. */
 export function Row({ label, description, children, htmlFor }: { label: ReactNode; description?: ReactNode; children?: ReactNode; htmlFor?: string }) {
   return (
-    <div className="flex min-h-14 items-center justify-between gap-8 py-3">
+    <div className="flex min-h-[54px] items-center justify-between gap-6 py-3">
       <div className="grid gap-0.5">
         <label htmlFor={htmlFor} className="text-sm font-medium">
           {label}

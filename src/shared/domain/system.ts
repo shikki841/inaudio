@@ -51,6 +51,19 @@ export interface ModelProgressEvent {
   error?: string;
 }
 
+export type WindowAction = 'minimize' | 'maximize-toggle' | 'close';
+
+export type AppMenuCommand =
+  | 'file.open-models-folder'
+  | 'file.run-setup'
+  | 'file.quit'
+  | 'view.dictation'
+  | 'view.history'
+  | 'view.read-aloud'
+  | 'view.models'
+  | 'view.audio'
+  | 'view.settings';
+
 export type AppCommand =
   | 'dictation:toggle'
   | 'dictation:start'

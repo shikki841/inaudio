@@ -123,7 +123,7 @@ export function SetupFlow() {
 
           {step === 0 ? (
             <div className="grid justify-items-start gap-6">
-              <span className="grid size-20 place-items-center rounded-2xl bg-accent text-on-accent">
+              <span className="grid size-20 place-items-center rounded-[18px] border border-line bg-surface text-accent">
                 <LogoMark className="size-14" />
               </span>
               <h1 className="text-3xl font-semibold tracking-tight">Talk instead of typing.</h1>

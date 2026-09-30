@@ -32,7 +32,7 @@ export function Select<T extends string>({
       <SelectPrimitive.Trigger
         aria-label={label}
         className={cn(
-          'inline-flex h-9 min-w-48 items-center justify-between gap-2 rounded-lg bg-sunken px-3 text-sm text-ink hover:bg-line disabled:opacity-50',
+          'inline-flex h-9 min-w-48 items-center justify-between gap-2 rounded-[6px] bg-sunken px-3 text-sm text-ink hover:bg-line disabled:opacity-50',
           className,
         )}
       >
@@ -47,7 +47,7 @@ export function Select<T extends string>({
         <SelectPrimitive.Content
           position="popper"
           sideOffset={4}
-          className="z-50 max-h-80 min-w-(--radix-select-trigger-width) overflow-hidden rounded-lg border border-line bg-surface p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)]"
+          className="z-50 max-h-80 min-w-(--radix-select-trigger-width) overflow-hidden rounded-[12px] border border-line bg-surface p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)]"
         >
           <SelectPrimitive.Viewport>
             {options.map((option) => (
@@ -55,7 +55,7 @@ export function Select<T extends string>({
                 key={option.value}
                 value={option.value}
                 disabled={option.disabled}
-                className="relative flex cursor-default items-center gap-2 rounded-md py-2 pr-3 pl-8 text-sm outline-none data-disabled:opacity-40 data-highlighted:bg-sunken"
+                className="relative flex cursor-default items-center gap-2 rounded-[6px] py-2 pr-3 pl-8 text-sm outline-none data-disabled:opacity-40 data-highlighted:bg-sunken"
               >
                 <SelectPrimitive.ItemIndicator className="absolute left-2.5">
                   <Check className="size-4 text-accent" />

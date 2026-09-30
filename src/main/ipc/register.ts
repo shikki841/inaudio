@@ -1,10 +1,10 @@
-import { ipcMain, shell } from 'electron';
+import { app, ipcMain, shell } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { MODEL_CATALOG, voiceSid, type ModelId } from '@shared/domain/models';
 import type { Transcript } from '@shared/domain/history';
 import type { TranscribeResult } from '@shared/ipc/api';
-import { IPC } from '@shared/ipc/channels';
+import { EVENTS, IPC } from '@shared/ipc/channels';
 import { EXTERNAL_LINKS, schemas } from '@shared/ipc/schemas';
 import { assertTrustedSender } from '../security/trusted-origin';
 import { openTrustedExternal } from '../security/hardening';
@@ -20,6 +20,40 @@ export function registerIpc(services: Services): void {
   handle(IPC.systemOpenLink, schemas.openLink, (id) => openTrustedExternal(EXTERNAL_LINKS[id]));
   handle(IPC.systemRevealModels, none, async () => {
     await shell.openPath(paths.models);
+  });
+  handle(IPC.systemWindow, schemas.windowAction, (action) => {
+    const win = services.window();
+    if (!win || win.isDestroyed()) return;
+    if (action === 'minimize') {
+      win.minimize();
+      return;
+    }
+    if (action === 'close') {
+      win.close();
+      return;
+    }
+    if (win.isMaximized()) win.unmaximize();
+    else win.maximize();
+  });
+  handle(IPC.systemMenu, schemas.menuCommand, async (command) => {
+    if (command === 'file.open-models-folder') {
+      await shell.openPath(paths.models);
+      return;
+    }
+    if (command === 'file.run-setup') {
+      settings.update({ onboardingComplete: false });
+      return;
+    }
+    if (command === 'file.quit') {
+      app.quit();
+      return;
+    }
+    const win = services.window();
+    if (!win || win.isDestroyed()) return;
+    win.show();
+    win.focus();
+    const route = command.slice('view.'.length);
+    win.webContents.send(EVENTS.command, `navigate:${route}`);
   });
 
   handle(IPC.settingsGet, none, () => settings.get());

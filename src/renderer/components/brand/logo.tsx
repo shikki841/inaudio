@@ -27,7 +27,7 @@ export function LogoMark({ className, title = 'Inaudio' }: { className?: string;
 export function Wordmark({ className, collapsed }: { className?: string; collapsed?: boolean }) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
-      <span className="grid size-9 place-items-center rounded-[10px] bg-accent text-on-accent">
+      <span className="grid size-9 place-items-center rounded-[10px] border border-line bg-surface text-accent">
         <LogoMark className="size-7" />
       </span>
       {!collapsed && <span className="text-[17px] font-semibold tracking-tight">Inaudio</span>}
