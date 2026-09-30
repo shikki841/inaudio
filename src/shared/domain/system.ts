@@ -31,6 +31,14 @@ export interface SystemStatus {
   models: ModelStatus[];
   worker: WorkerHealth;
   onBattery: boolean;
+  window: {
+    maximized: boolean;
+    minimizable: boolean;
+    maximizable: boolean;
+    closable: boolean;
+    focused: boolean;
+    fullscreen: boolean;
+  };
 }
 
 export type DictationPhase = 'idle' | 'listening' | 'transcribing' | 'inserting' | 'error';

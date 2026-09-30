@@ -14,6 +14,11 @@ export const settingsSchema = z.object({
   appearance: z.object({
     theme: z.enum(['system', 'light', 'dark']),
     sidebarCollapsed: z.boolean(),
+    fontSize: z.enum(['sm', 'md', 'lg']),
+    fontFamily: z.enum(['inter', 'system']),
+    animations: z.enum(['full', 'reduced', 'off']),
+    contentWidth: z.enum(['compact', 'default', 'wide']),
+    accentTone: z.enum(['blue', 'violet', 'green', 'amber', 'rose']),
   }),
   dictation: z.object({
     mode: z.enum(['toggle', 'push-to-talk']),
@@ -49,7 +54,15 @@ export type Settings = z.infer<typeof settingsSchema>;
 export const DEFAULT_SETTINGS: Settings = {
   version: 1,
   onboardingComplete: false,
-  appearance: { theme: 'system', sidebarCollapsed: false },
+  appearance: {
+    theme: 'system',
+    sidebarCollapsed: false,
+    fontSize: 'md',
+    fontFamily: 'inter',
+    animations: 'full',
+    contentWidth: 'default',
+    accentTone: 'blue',
+  },
   dictation: {
     mode: 'toggle',
     shortcut: 'CommandOrControl+Shift+Space',
