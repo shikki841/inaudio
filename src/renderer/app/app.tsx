@@ -45,18 +45,6 @@ function useMainEvents() {
           default:
             if (command.startsWith('navigate:')) navigate(command.slice('navigate:'.length) as Route);
         }
-
-        function useAppearance() {
-          const { data: settings } = useSettings();
-          useEffect(() => {
-            if (!settings) return;
-            const root = document.documentElement;
-            root.dataset.fontSize = settings.appearance.fontSize;
-            root.dataset.fontFamily = settings.appearance.fontFamily;
-            root.dataset.motion = settings.appearance.animations;
-            root.dataset.accentTone = settings.appearance.accentTone;
-          }, [settings]);
-        }
       }),
       api.events.onStatusChanged(() => void client.invalidateQueries({ queryKey: keys.status })),
       api.events.onSettingsChanged((settings) => client.setQueryData(keys.settings, settings)),
@@ -87,6 +75,18 @@ function useHoldToTalk(enabled: boolean) {
       window.removeEventListener('keyup', up);
     };
   }, [enabled]);
+}
+
+function useAppearance() {
+  const { data: settings } = useSettings();
+  useEffect(() => {
+    if (!settings) return;
+    const root = document.documentElement;
+    root.dataset.fontSize = settings.appearance.fontSize;
+    root.dataset.fontFamily = settings.appearance.fontFamily;
+    root.dataset.motion = settings.appearance.animations;
+    root.dataset.accentTone = settings.appearance.accentTone;
+  }, [settings]);
 }
 
 export function App() {
