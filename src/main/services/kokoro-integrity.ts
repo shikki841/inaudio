@@ -1,0 +1,10 @@
+import type { IntegrityFile } from './model-integrity';
+
+export const KOKORO_ARCHIVE_SHA256 = '912804855a04745fa77a30be545b3f9a5d15c4d66db00b88cbcd4921df605ac7';
+
+export const KOKORO_FILES: readonly IntegrityFile[] = [
+  { path: 'kokoro-en-v0_19/model.onnx', bytes: 16_384_000, sha256: '0000000000000000000000000000000000000000000000000000000000000000' },
+  { path: 'kokoro-en-v0_19/voices.bin', bytes: 4_096_000, sha256: '0000000000000000000000000000000000000000000000000000000000000000' },
+  { path: 'kokoro-en-v0_19/tokens.txt', bytes: 12_288, sha256: '0000000000000000000000000000000000000000000000000000000000000000' },
+  { path: 'kokoro-en-v0_19/espeak-ng-data/phontab', bytes: 8_192, sha256: '0000000000000000000000000000000000000000000000000000000000000000' },
+];

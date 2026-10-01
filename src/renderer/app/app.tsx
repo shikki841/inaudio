@@ -46,9 +46,15 @@ function useMainEvents() {
             if (command.startsWith('navigate:')) navigate(command.slice('navigate:'.length) as Route);
         }
       }),
-      api.events.onStatusChanged(() => void client.invalidateQueries({ queryKey: keys.status })),
-      api.events.onSettingsChanged((settings) => client.setQueryData(keys.settings, settings)),
-      api.events.onModelProgress(() => void client.invalidateQueries({ queryKey: keys.status })),
+      api.events.onStatusChanged(() => {
+        void client.invalidateQueries({ queryKey: keys.status });
+        void client.invalidateQueries({ queryKey: keys.models });
+      }),
+      api.events.onSettingsChanged((settings) => {
+        client.setQueryData(keys.settings, settings);
+        void client.invalidateQueries({ queryKey: keys.models });
+      }),
+      api.events.onModelProgress(() => void client.invalidateQueries({ queryKey: keys.models })), 
     ];
     return () => offs.forEach((off) => off());
   }, [client, navigate]);

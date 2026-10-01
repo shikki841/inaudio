@@ -1,4 +1,5 @@
 import { Menu, Tray, app } from 'electron';
+import type { ModelStatus } from '@shared/domain/models';
 import type { DictationPhase } from '@shared/domain/system';
 import { trayImage } from '../app/assets';
 
@@ -13,6 +14,7 @@ const PHASE_LABEL: Record<DictationPhase, string> = {
 export class TrayService {
   private tray: Tray | null = null;
   private phase: DictationPhase = 'idle';
+  private models: ModelStatus[] = [];
 
   constructor(
     private readonly actions: {
@@ -36,6 +38,11 @@ export class TrayService {
     this.render();
   }
 
+  setModels(models: ModelStatus[]): void {
+    this.models = models;
+    this.render();
+  }
+
   destroy(): void {
     this.tray?.destroy();
     this.tray = null;
@@ -44,7 +51,8 @@ export class TrayService {
   private render(): void {
     if (!this.tray) return;
     const listening = this.phase === 'listening';
-    this.tray.setToolTip(`${app.getName()}: ${PHASE_LABEL[this.phase]}`);
+    const loaded = this.models.filter((model) => model.loaded).map((model) => model.id).join(', ');
+    this.tray.setToolTip(`${app.getName()}: ${PHASE_LABEL[this.phase]}${loaded ? ` • ${loaded}` : ''}`);
     this.tray.setContextMenu(
       Menu.buildFromTemplate([
         { label: PHASE_LABEL[this.phase], enabled: false },

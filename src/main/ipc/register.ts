@@ -1,7 +1,7 @@
 import { app, ipcMain, shell } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { MODEL_CATALOG, voiceSid, type ModelId } from '@shared/domain/models';
+import { voiceSid, type ModelId } from '@shared/domain/models';
 import type { Transcript } from '@shared/domain/history';
 import type { TranscribeResult } from '@shared/ipc/api';
 import { EVENTS, IPC } from '@shared/ipc/channels';
@@ -59,23 +59,26 @@ export function registerIpc(services: Services): void {
   handle(IPC.settingsGet, none, () => settings.get());
   handle(IPC.settingsUpdate, schemas.settingsPatch, (patch) => settings.update(patch));
 
-  handle(IPC.modelsList, none, () => models.list());
+  handle(IPC.modelsList, none, () => services.modelStatuses());
   handle(IPC.modelsDownload, schemas.modelId, (id) => {
     // Progress is pushed as events; the promise settles when the job ends.
     return models.download(id);
   });
   handle(IPC.modelsCancel, schemas.modelId, (id) => models.cancel(id));
-  handle(IPC.modelsRemove, schemas.modelId, async (id) => {
-    if (inference.isLoaded(id)) await inference.unload(MODEL_CATALOG[id].kind);
-    await models.remove(id);
-  });
+  handle(IPC.modelsRemove, schemas.modelId, (id) => services.removeModel(id));
   handle(IPC.modelsLoad, schemas.modelId, (id) => services.ensureLoaded(id));
+  handle(IPC.modelsUnload, schemas.modelId, (id) => services.unloadModel(id));
+  handle(IPC.modelsActivate, schemas.modelId, (id) => services.activateModel(id));
+  handle(IPC.modelsVerify, schemas.modelId, (id) => services.verifyModel(id));
+  handle(IPC.modelsReveal, schemas.modelId, (id) => {
+    if (!models.isInstalled(id)) throw new Error('Model is not installed');
+    shell.showItemInFolder(models.directory(id));
+  });
 
   handle(IPC.dictationTranscribe, schemas.transcribe, async ({ samples, sampleRate, insert }) => {
     const current = settings.get();
     const modelId: ModelId = current.stt.modelId;
-    await services.ensureLoaded(modelId);
-    const result = await inference.transcribe(samples, sampleRate);
+    const result = await services.runModel(modelId, () => inference.transcribe(samples, sampleRate));
     const response: TranscribeResult = { transcript: null, text: result.text, inserted: false };
     if (!result.text) return response;
 
@@ -126,8 +129,7 @@ export function registerIpc(services: Services): void {
 
   handle(IPC.ttsSpeak, schemas.speak, async ({ text, voiceId, speed }) => {
     const tts = settings.get().tts;
-    await services.ensureLoaded(tts.modelId);
-    return inference.speak(text, voiceSid(voiceId ?? tts.voiceId), speed ?? tts.speed);
+    return services.runModel(tts.modelId, () => inference.speak(text, voiceSid(voiceId ?? tts.voiceId), speed ?? tts.speed));
   });
 
   handle(IPC.historyList, schemas.historyQuery, (query) => history.list(query));

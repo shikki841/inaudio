@@ -131,7 +131,7 @@ export const MODEL_CATALOG: Record<ModelId, ModelDescriptor> = {
     runtime: 'sherpa-onnx',
     name: 'Parakeet TDT 0.6B v3',
     summary: 'Speech recognition for 25 European languages, detected automatically.',
-    languages: ['en', 'de', 'es', 'fr', 'it', 'nl', 'pl', 'pt', 'uk', 'ru', '+15'],
+    languages: ['bg', 'hr', 'cs', 'da', 'nl', 'en', 'et', 'fi', 'fr', 'de', 'el', 'hu', 'it', 'lv', 'lt', 'mt', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'es', 'sv', 'uk'],
     license: 'CC-BY-4.0',
     source: 'https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3',
     layout: parakeetLayout,
@@ -247,6 +247,8 @@ export function isAllowedDownloadUrl(raw: string): boolean {
 }
 
 export type ModelInstallState = 'missing' | 'downloading' | 'verifying' | 'installed' | 'error';
+export type ModelLoadState = 'unloaded' | 'loading' | 'loaded' | 'unloading' | 'error';
+export type ModelHealth = 'unchecked' | 'healthy' | 'error' | 'unavailable';
 
 export interface ModelStatus {
   id: ModelId;
@@ -254,6 +256,13 @@ export interface ModelStatus {
   state: ModelInstallState;
   bytesTotal: number;
   bytesDone: number;
+  installed: boolean;
   loaded: boolean;
+  active: boolean;
+  loadState: ModelLoadState;
+  health: ModelHealth;
+  runtime?: ModelRuntime;
+  version?: string;
+  lastUsedAt?: number;
   error?: string;
 }

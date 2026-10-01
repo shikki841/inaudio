@@ -46,6 +46,8 @@ export const settingsSchema = z.object({
   system: z.object({
     launchAtLogin: z.boolean(),
     closeToTray: z.boolean(),
+    autoUnload: z.boolean(),
+    idleMinutes: z.number().int().min(1).max(60),
   }),
 });
 
@@ -79,7 +81,7 @@ export const DEFAULT_SETTINGS: Settings = {
     speed: 1,
     shortcut: 'CommandOrControl+Shift+R',
   },
-  system: { launchAtLogin: false, closeToTray: true },
+  system: { launchAtLogin: false, closeToTray: true, autoUnload: true, idleMinutes: 10 },
 };
 
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
