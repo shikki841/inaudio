@@ -20,7 +20,7 @@ mkdirSync('release-assets', { recursive: true });
 const names = new Set();
 const checksums = [];
 for (const file of artifacts) {
-  const name = `${platform}-${arch}-${path.basename(file)}`;
+  const name = `${platform}-${arch}-${path.basename(file)}`.replace(/[^a-zA-Z0-9._+-]/g, '_');
   if (names.has(name)) throw new Error(`Duplicate artifact: ${name}`);
   names.add(name);
   copyFileSync(file, path.join('release-assets', name));

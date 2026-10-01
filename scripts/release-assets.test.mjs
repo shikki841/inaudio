@@ -40,3 +40,23 @@ test('fails if any required installer format is missing', () => {
     assert.match(result.stderr, /Missing .* installer/);
   });
 });
+
+test('sanitizes unsafe characters in produced asset names', () => {
+  fixture((root) => {
+    for (const extension of extensions) {
+      const base = extension === extensions[0] ? `my installer${extension}` : `installer${extension}`;
+      writeFileSync(path.join(root, 'out', 'make', 'nested', base), 'installer bytes');
+    }
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    const directory = path.join(root, 'release-assets');
+    const names = readdirSync(directory);
+    for (const name of names) assert.match(name, /^[a-zA-Z0-9._+-]+$/);
+    const manifest = names.find((name) => name.startsWith('SHA256SUMS'));
+    for (const line of readFileSync(path.join(directory, manifest), 'utf8').trim().split('\n')) {
+      const [digest, name] = line.split('  ');
+      assert.match(name, /^[a-zA-Z0-9._+-]+$/);
+      assert.equal(createHash('sha256').update(readFileSync(path.join(directory, name))).digest('hex'), digest);
+    }
+  });
+});
