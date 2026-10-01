@@ -1,0 +1,6 @@
+# Review ownership for project-critical files.
+* @shikki841
+/.github/ @shikki841
+/src/main/security/ @shikki841
+/src/preload/ @shikki841
+/src/shared/security/ @shikki841
