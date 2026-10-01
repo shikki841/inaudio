@@ -6,6 +6,10 @@ export interface AppPaths {
   data: string;
   models: string;
   downloads: string;
+  cache: string;
+  audio: string;
+  history: string;
+  logs: string;
   database: string;
   settings: string;
 }
@@ -19,10 +23,14 @@ export function appPaths(): AppPaths {
     data,
     models: path.join(data, 'models'),
     downloads: path.join(data, 'downloads'),
+    cache: path.join(data, 'cache'),
+    audio: path.join(data, 'audio'),
+    history: path.join(data, 'history'),
+    logs: path.join(data, 'logs'),
     database: path.join(data, 'history.sqlite3'),
     settings: path.join(data, 'settings.json'),
   };
-  for (const dir of [cached.models, cached.downloads]) {
+  for (const dir of [cached.models, cached.downloads, cached.cache, cached.audio, cached.history, cached.logs]) {
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
   return cached;

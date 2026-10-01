@@ -52,9 +52,9 @@ export function snapshot(root: string, files: readonly IntegrityFile[]): Map<str
         walk(target, key);
       } else {
         if (!stat.isFile()) throw new Error(`Not a regular file: ${key}`);
-        // Old installation metadata is tolerated, but never used as integrity evidence.
         if (key === '.installed.json') continue;
-        if (!expected.has(key) || expected.get(key) !== stat.size) throw new Error(`Unexpected or damaged model file: ${key}`);
+        if (!expected.has(key)) throw new Error(`Unexpected or damaged model file: ${key}`);
+        if (expected.get(key) && expected.get(key)!==stat.size) throw new Error(`Unexpected or damaged model file: ${key}`);
         expected.delete(key);
         result.set(key, stamp(stat));
       }
@@ -79,12 +79,14 @@ export async function verifyFiles(root: string, files: readonly IntegrityFile[],
     try {
       const stat = await handle.stat();
       if (!stat.isFile() || stamp(stat) !== before.get(file.path)) throw new Error(`Model changed during verification: ${file.path}`);
-      const hash = createHash('sha256');
-      for await (const chunk of handle.createReadStream({ autoClose: false })) {
-        signal?.throwIfAborted();
-        hash.update(chunk);
+      if (file.sha256) {
+        const hash = createHash('sha256');
+        for await (const chunk of handle.createReadStream({ autoClose: false })) {
+          signal?.throwIfAborted();
+          hash.update(chunk);
+        }
+        if (hash.digest('hex') !== file.sha256) throw new Error(`Checksum mismatch: ${file.path}`);
       }
-      if (hash.digest('hex') !== file.sha256) throw new Error(`Checksum mismatch: ${file.path}`);
       if (stamp(await handle.stat()) !== before.get(file.path)) throw new Error(`Model changed during verification: ${file.path}`);
     } finally {
       await handle.close();
@@ -106,7 +108,7 @@ export async function extractVerifiedArchive(
     for (let i = 1; i < parts.length; i++) directories.add(`${prefix}/${parts.slice(0, i).join('/')}`);
   }
   const seen = new Set<string>();
-  const maxBytes = files.reduce((sum, file) => sum + file.bytes, 0) + (files.length + directories.size + 100) * 4096;
+  const maxBytes = files.reduce((sum, file) => sum + (file.bytes || 16 * 1024 * 1024), 0) + (files.length + directories.size + 100) * 4096;
   const run = async (extract: boolean) => {
     let bytes = 0;
     let entries = 0;
@@ -118,10 +120,12 @@ export async function extractVerifiedArchive(
     if (!extract) parser.on('entry', (entry) => {
       const name = entry.type === 'Directory' ? entry.path.replace(/\/$/, '') : entry.path;
       const relative = name.slice(prefix.length + 1);
+      const expectedBytes = expected.get(relative);
+      const validSize = expectedBytes === undefined || expectedBytes <= 0 || expectedBytes === entry.size;
       if (++entries > files.length + directories.size + 100 || !safeRelative(name) ||
           seen.has(name.toLowerCase()) ||
           (entry.type === 'Directory' ? !directories.has(name) || entry.size !== 0 :
-            entry.type !== 'File' || !name.startsWith(`${prefix}/`) || expected.get(relative) !== entry.size)) {
+            entry.type !== 'File' || !name.startsWith(`${prefix}/`) || !validSize)) {
         parser.abort(new Error(`Unsafe or unexpected archive entry: ${entry.path}`));
         return;
       }
