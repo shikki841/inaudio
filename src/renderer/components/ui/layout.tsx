@@ -20,9 +20,9 @@ export function Separator({ className }: { className?: string }) {
 }
 
 /** A titled group of rows separated by hairlines; no card chrome. */
-export function Section({ title, description, children, className }: { title: string; description?: ReactNode; children: ReactNode; className?: string }) {
+export function Section({ title, description, children, className, id }: { title: string; description?: ReactNode; children: ReactNode; className?: string; id?: string }) {
   return (
-    <section className={cn('grid gap-1 py-6 first:pt-0', className)}>
+    <section id={id} className={cn('grid scroll-mt-6 gap-1 py-6 first:pt-0', className)}>
       <h2 className="text-sm font-semibold tracking-wide text-faint uppercase">{title}</h2>
       {description && <p className="text-sm text-muted">{description}</p>}
       <div className="mt-3 divide-y divide-line">{children}</div>
@@ -31,9 +31,9 @@ export function Section({ title, description, children, className }: { title: st
 }
 
 /** One setting: label and description on the left, control on the right. */
-export function Row({ label, description, children, htmlFor }: { label: ReactNode; description?: ReactNode; children?: ReactNode; htmlFor?: string }) {
+export function Row({ label, description, children, htmlFor, id }: { label: ReactNode; description?: ReactNode; children?: ReactNode; htmlFor?: string; id?: string }) {
   return (
-    <div className="flex min-h-[54px] items-center justify-between gap-6 py-3">
+    <div id={id} className="scroll-mt-6 flex min-h-[54px] items-center justify-between gap-6 py-3">
       <div className="grid gap-0.5">
         <label htmlFor={htmlFor} className="text-sm font-medium">
           {label}
