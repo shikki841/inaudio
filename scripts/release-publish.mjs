@@ -8,8 +8,12 @@ const repository = process.env.GITHUB_REPOSITORY;
 const tag = process.env.RELEASE_TAG;
 const sha = process.env.GITHUB_SHA;
 if (!/^v?\d+\.\d+\.\d+$/.test(tag ?? '') || !/^[a-f0-9]{40}$/.test(sha ?? '')) throw new Error('Invalid release context');
-const names = readdirSync('release-assets').sort();
-if (names.some((name) => !/^[a-zA-Z0-9._+-]+$/.test(name))) throw new Error('Unexpected asset filename');
+const entries = readdirSync('release-assets', { withFileTypes: true });
+const invalid = entries
+  .filter((entry) => !entry.isFile() || !/^[a-zA-Z0-9._+-]+$/.test(entry.name))
+  .map((entry) => entry.name);
+if (invalid.length > 0) throw new Error(`Unexpected release asset entries: ${invalid.join(', ')}`);
+const names = entries.map((entry) => entry.name).sort();
 const expected = ['win32-x64', 'linux-x64', 'darwin-arm64'];
 const verified = new Set();
 for (const target of expected) {
