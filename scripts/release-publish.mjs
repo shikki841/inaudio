@@ -44,8 +44,24 @@ if (refs.some((ref) => ref.ref === `refs/tags/${tag}`)) {
   gh('api', '--method', 'POST', `repos/${repository}/git/refs`, '-f', `ref=refs/tags/${tag}`, '-f', `sha=${sha}`);
 }
 if (!release) {
-  gh('release', 'create', tag, '--repo', repository, '--target', sha, '--verify-tag', '--draft', '--generate-notes', '--title', tag);
-  release = JSON.parse(gh('api', `repos/${repository}/releases/tags/${tag}`));
+  release = JSON.parse(
+    gh(
+      'api',
+      '--method',
+      'POST',
+      `repos/${repository}/releases`,
+      '-f',
+      `tag_name=${tag}`,
+      '-f',
+      `target_commitish=${sha}`,
+      '-F',
+      'draft=true',
+      '-f',
+      `name=${tag}`,
+      '-F',
+      'generate_release_notes=true',
+    ),
+  );
 }
 // A failed draft upload can be resumed only with identical assets. Never use --clobber.
 const remote = JSON.parse(gh('api', '--paginate', '--slurp', `repos/${repository}/releases/${release.id}/assets?per_page=100`)).flat();
