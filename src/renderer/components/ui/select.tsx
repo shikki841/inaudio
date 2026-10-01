@@ -7,6 +7,7 @@ export interface SelectOption<T extends string> {
   value: T;
   label: ReactNode;
   hint?: ReactNode;
+  adornment?: ReactNode;
   disabled?: boolean;
 }
 
@@ -36,7 +37,8 @@ export function Select<T extends string>({
           className,
         )}
       >
-        <span className="truncate">
+        <span className="flex min-w-0 items-center gap-2 truncate">
+          {options.find((option) => option.value === value)?.adornment}
           <SelectPrimitive.Value placeholder={placeholder} />
         </span>
         <SelectPrimitive.Icon>
@@ -60,6 +62,7 @@ export function Select<T extends string>({
                 <SelectPrimitive.ItemIndicator className="absolute left-2.5">
                   <Check className="size-4 text-accent" />
                 </SelectPrimitive.ItemIndicator>
+                {option.adornment}
                 <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
                 {option.hint && <span className="ml-auto pl-4 text-xs text-faint">{option.hint}</span>}
               </SelectPrimitive.Item>
