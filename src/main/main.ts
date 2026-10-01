@@ -101,6 +101,7 @@ function bootstrap(): void {
     services = createServices({ paths, tray, shortcuts, window: () => mainWindow });
     const s = services;
     registerIpc(s);
+    void s.models.discover().catch((error: unknown) => console.error('Model discovery failed', error));
 
     const applyTheme = () => {
       nativeTheme.themeSource = s.settings.get().appearance.theme;

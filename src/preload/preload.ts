@@ -29,6 +29,10 @@ const api: InaudioApi = {
     cancel: (id) => ipcRenderer.invoke(IPC.modelsCancel, id),
     remove: (id) => ipcRenderer.invoke(IPC.modelsRemove, id),
     load: (id) => ipcRenderer.invoke(IPC.modelsLoad, id),
+    unload: (id) => ipcRenderer.invoke(IPC.modelsUnload, id),
+    activate: (id) => ipcRenderer.invoke(IPC.modelsActivate, id),
+    verify: (id) => ipcRenderer.invoke(IPC.modelsVerify, id),
+    reveal: (id) => ipcRenderer.invoke(IPC.modelsReveal, id),
   },
   dictation: {
     transcribe: (samples, { insert }) =>

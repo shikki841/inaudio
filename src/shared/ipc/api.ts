@@ -45,6 +45,10 @@ export interface InaudioApi {
     cancel(id: ModelId): Promise<void>;
     remove(id: ModelId): Promise<void>;
     load(id: ModelId): Promise<void>;
+    unload(id: ModelId): Promise<void>;
+    activate(id: ModelId): Promise<void>;
+    verify(id: ModelId): Promise<void>;
+    reveal(id: ModelId): Promise<void>;
   };
   dictation: {
     transcribe(samples: Float32Array, options: { insert: boolean }): Promise<TranscribeResult>;

@@ -6,13 +6,15 @@ import { api } from './api';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 },
+    queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1, networkMode: 'always' },
+    mutations: { networkMode: 'always' },
   },
 });
 
 export const keys = {
   settings: ['settings'] as const,
   status: ['status'] as const,
+  models: ['models'] as const,
   history: (query: HistoryQuery) => ['history', query] as const,
   historyAll: ['history'] as const,
 };
@@ -48,12 +50,20 @@ export function useHistory(query: HistoryQuery) {
 
 export function useModelAction() {
   const client = useQueryClient();
-  const refresh = () => client.invalidateQueries({ queryKey: keys.status });
+  const refresh = () => Promise.all([
+    client.invalidateQueries({ queryKey: keys.status }),
+    client.invalidateQueries({ queryKey: keys.models }),
+    client.invalidateQueries({ queryKey: keys.settings }),
+  ]);
   return {
     download: useMutation({ mutationFn: (id: ModelId) => api.models.download(id), onSettled: refresh }),
     cancel: useMutation({ mutationFn: (id: ModelId) => api.models.cancel(id), onSettled: refresh }),
     remove: useMutation({ mutationFn: (id: ModelId) => api.models.remove(id), onSettled: refresh }),
     load: useMutation({ mutationFn: (id: ModelId) => api.models.load(id), onSettled: refresh }),
+    unload: useMutation({ mutationFn: (id: ModelId) => api.models.unload(id), onSettled: refresh }),
+    activate: useMutation({ mutationFn: (id: ModelId) => api.models.activate(id), onSettled: refresh }),
+    verify: useMutation({ mutationFn: (id: ModelId) => api.models.verify(id), onSettled: refresh }),
+    reveal: useMutation({ mutationFn: (id: ModelId) => api.models.reveal(id) }),
   };
 }
 
