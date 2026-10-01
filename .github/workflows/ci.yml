@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_call:
+    inputs:
+      version:
+        description: Version applied only to the disposable build checkout
+        type: string
+        default: ''
+      release-build:
+        description: Upload installers for the separate release publisher
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint and typecheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: node --test scripts/*.test.mjs
+
+  build:
+    name: Package (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            platform: win32-x64
+          - os: ubuntu-24.04
+            platform: linux-x64
+          - os: macos-14
+            platform: darwin-arm64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+      - run: npm ci
+      - name: Apply release version
+        if: inputs.version != ''
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          npm version "$RELEASE_VERSION" --no-git-tag-version --ignore-scripts --allow-same-version
+      - name: Generate macOS application icon
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p assets/icons/icon.iconset
+          for size in 16 32 128 256 512; do
+            sips -z "$size" "$size" assets/icons/icon.png --out "assets/icons/icon.iconset/icon_${size}x${size}.png" >/dev/null
+            double=$((size * 2))
+            sips -z "$double" "$double" assets/icons/icon.png --out "assets/icons/icon.iconset/icon_${size}x${size}@2x.png" >/dev/null
+          done
+          iconutil -c icns assets/icons/icon.iconset -o assets/icons/icon.icns
+          rm -r assets/icons/icon.iconset
+      - run: npm run make
+      - name: Collect installers and checksums
+        run: node scripts/release-assets.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ inputs.release-build && 'release' || 'pr' }}-${{ matrix.platform }}
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0

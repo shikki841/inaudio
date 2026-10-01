@@ -1,0 +1,51 @@
+<p align="center">
+  <img src="assets/icons/icon.png" width="180" height="180" alt="Inaudio microphone logo" />
+</p>
+<h1 align="center">Inaudio</h1>
+<p align="center">Your voice, on your machine.</p>
+<p align="center">
+  Offline dictation and read-aloud for the desktop.<br />
+  Built with Electron, React, TypeScript, and sherpa-onnx.
+</p>
+<p align="center">
+  <a href="https://github.com/shikki841/inaudio/actions/workflows/ci.yml"><img src="https://github.com/shikki841/inaudio/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
+  <a href="https://github.com/shikki841/inaudio/releases"><img src="https://img.shields.io/github/v/release/shikki841/inaudio" alt="Latest release" /></a>
+</p>
+<p align="center">
+  <a href="https://github.com/shikki841/inaudio/releases">Downloads</a> ·
+  <a href="CONTRIBUTING.md">Contribute</a> ·
+  <a href="https://github.com/shikki841/inaudio/issues/new/choose">Report an issue</a>
+</p>
+
+## Speak. Edit. Keep going.
+
+- Dictate with a keyboard shortcut and keep a searchable transcript history.
+- Read text or your clipboard aloud with on-device speech synthesis.
+- Manage speech models, microphone settings, and playback in one desktop app.
+
+Download a model once, then run inference locally. Model downloads need an internet connection. Desktop packages target Windows, macOS, and Linux; permissions and text insertion vary by platform. Current automated builds are unsigned.
+
+## Run locally
+
+Use Node.js 24 LTS and npm. Native packaging prerequisites are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```sh
+git clone https://github.com/shikki841/inaudio.git
+cd inaudio
+npm ci
+npm start
+```
+
+```sh
+npm run check   # TypeScript + ESLint
+npm run make    # Package for your current OS
+```
+
+Pick a model during setup and grant microphone access when prompted.
+
+## Build with us
+
+Small fixes, platform testing, and clear bug reports help. Read the [contribution guide](CONTRIBUTING.md), [community guidelines](CODE_OF_CONDUCT.md), and [release process](.github/RELEASING.md). Report vulnerabilities through the [security policy](SECURITY.md).
+
+[MIT](LICENSE). Downloaded models and dependencies retain their own licenses.
