@@ -15,9 +15,9 @@ export const buttonVariants = cva(
         record: 'bg-record text-white hover:opacity-90',
       },
       size: {
-        sm: 'h-8 px-3 text-[13px]',
+        sm: 'h-8 px-3 text-sm',
         md: 'h-9 px-3 text-sm',
-        lg: 'h-11 px-4 text-[15px]',
+        lg: 'h-11 px-4 text-base',
         icon: 'size-9',
         'icon-sm': 'size-8',
       },

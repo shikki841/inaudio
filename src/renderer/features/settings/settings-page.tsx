@@ -120,6 +120,8 @@ export function SettingsPage() {
               <button
                 key={theme}
                 type="button"
+                aria-pressed={settings.appearance.theme === theme}
+                aria-label={`${theme} theme`}
                 onClick={() => update.mutate({ appearance: { theme } })}
                 className={`rounded-[12px] border p-3 text-left transition-colors ${
                   settings.appearance.theme === theme ? 'border-accent bg-accent-soft/50' : 'border-line bg-surface hover:bg-sunken'

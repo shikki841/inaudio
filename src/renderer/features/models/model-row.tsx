@@ -40,12 +40,12 @@ export function ModelRow({
       <div className="flex items-start justify-between gap-6">
         <div className="grid gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[15px] font-medium">{model.name}</span>
+            <span className="text-base font-medium">{model.name}</span>
             {selected && <Badge tone="accent">In use</Badge>}
             {status.state === 'installed' && <Badge tone="success"><Check className="size-3" /> Installed</Badge>}
             {status.loaded && <Badge>Loaded</Badge>}
           </div>
-          {!compact && <p className="text-[13px] text-muted">{model.summary}</p>}
+          {!compact && <p className="text-sm text-muted">{model.summary}</p>}
           <p className="text-xs text-faint">
             {formatBytes(modelBytes(model))} · {model.languages.length > 3 ? `${model.languages.length} languages` : model.languages.join(', ')} · {model.license}
           </p>
@@ -96,7 +96,7 @@ export function ModelRow({
           </span>
         </div>
       )}
-      {status.state === 'error' && error && <p className="text-[13px] text-danger">{error}</p>}
+      {status.state === 'error' && error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );
 }

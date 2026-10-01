@@ -14,7 +14,7 @@ export function EmptyState({ title, description, action }: { title: string; desc
         </g>
       </svg>
       <div className="grid gap-1">
-        <h3 className="text-[18px] font-semibold text-ink">{title}</h3>
+        <h3 className="text-lg font-semibold text-ink">{title}</h3>
         <p className="max-w-md text-sm text-muted">{description}</p>
       </div>
       {action}

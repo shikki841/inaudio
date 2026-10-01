@@ -83,7 +83,7 @@ export function DictationPage() {
             {listening && <span className="font-mono text-sm text-muted tabular-nums">{formatDuration(elapsed)}</span>}
           </div>
           <LevelMeter level={listening ? level : 0} active={listening} />
-          <p className="text-[13px] text-muted">
+          <p className="text-sm text-muted">
             {listening ? 'Press again to insert the text.' : (
               <span className="inline-flex items-center gap-2">Press <Kbd keys={keys} /> from any app{settings.dictation.mode === 'push-to-talk' ? ', or hold it while Inaudio is focused' : ''}.</span>
             )}
@@ -102,7 +102,7 @@ export function DictationPage() {
 
       <section className="grid gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-[13px] font-semibold tracking-wide text-faint uppercase">Last transcript</h2>
+          <h2 className="text-sm font-semibold tracking-wide text-faint uppercase">Last transcript</h2>
           <div className="flex items-center gap-2">
             {last && <Badge>{(last.inferenceMs / 1000).toFixed(2)} s on device</Badge>}
             {lastText && (
@@ -112,7 +112,7 @@ export function DictationPage() {
             )}
           </div>
         </div>
-        <p data-selectable className={cn('min-h-16 text-[15px] leading-relaxed whitespace-pre-wrap', !lastText && 'text-faint')}>
+        <p data-selectable className={cn('min-h-16 text-base leading-relaxed whitespace-pre-wrap', !lastText && 'text-faint')}>
           {lastText || 'Your words will appear here.'}
         </p>
       </section>

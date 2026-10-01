@@ -39,7 +39,7 @@ export function RadioGroup<T extends string>({
           </RadioGroupPrimitive.Item>
           <span className="grid gap-0.5">
             <span className="text-sm font-medium">{option.label}</span>
-            {option.description && <span className="text-[13px] text-muted">{option.description}</span>}
+            {option.description && <span className="text-sm text-muted">{option.description}</span>}
           </span>
         </label>
       ))}

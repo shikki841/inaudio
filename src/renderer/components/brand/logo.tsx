@@ -30,7 +30,7 @@ export function Wordmark({ className, collapsed }: { className?: string; collaps
       <span className="grid size-9 place-items-center rounded-[10px] border border-line bg-surface text-accent">
         <LogoMark className="size-7" />
       </span>
-      {!collapsed && <span className="text-[17px] font-semibold tracking-tight">Inaudio</span>}
+      {!collapsed && <span className="text-lg font-semibold tracking-tight">Inaudio</span>}
     </div>
   );
 }
