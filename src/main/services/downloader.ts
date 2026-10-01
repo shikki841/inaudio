@@ -138,7 +138,11 @@ async function attemptDownload(options: DownloadOptions, deadline: number): Prom
       credentials: 'omit', referrerPolicy: 'no-referrer',
     });
     clearConnect();
-    if (!response.ok || !response.body || !isAllowedModelDownloadUrl(response.url)) {
+    // onBeforeRequest already gates every hop (including the final redirect target) against the
+    // allowlist, so a disallowed host surfaces as a cancelled request, never a 2xx. response.url is
+    // only re-checked when populated: Electron leaves it empty after a redirect (electron/electron#42219),
+    // and every catalog URL redirects to a CDN, so requiring it here rejected all legitimate downloads.
+    if (!response.ok || !response.body || (response.url && !isAllowedModelDownloadUrl(response.url))) {
       const message = `Download failed (HTTP ${response.status})`;
       throw response.status >= 500 || response.status === 429 ? new RetryableDownloadError(message) : new Error(message);
     }
