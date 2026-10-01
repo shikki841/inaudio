@@ -5,22 +5,24 @@ import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { Readable, Transform } from 'node:stream';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
-import { MODEL_CATALOG } from '@shared/domain/models';
+import { MODEL_CATALOG, isAllowedDownloadUrl } from '@shared/domain/models';
 import { assertSafePath } from './model-integrity';
 
 let downloadSession: Session | null = null;
-const CDN_HOSTS = new Set([
-  'huggingface.co', 'hf.co', 'cdn-lfs.huggingface.co', 'cdn-lfs.hf.co',
-  'cdn-lfs-us-1.hf.co', 'cdn-lfs-eu-1.hf.co',
-  'cas-bridge.xethub.hf.co', 'transfer.xethub.hf.co',
-  'github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com',
-]);
 
+/**
+ * Gate for every request the download partition makes, including each redirect hop.
+ * Delegates host matching to the shared allowlist (exact host or `.`-prefixed subdomain of
+ * huggingface.co / hf.co / github.com / githubusercontent.com) so HuggingFace Xet and regional
+ * CDN redirects are accepted, while still rejecting non-https URLs, credentials, ports, and
+ * fragments. A single authoritative predicate avoids the host-list drift that silently blocked
+ * valid CDN redirects (net::ERR_BLOCKED_BY_CLIENT).
+ */
 export function isAllowedModelDownloadUrl(raw: string): boolean {
   try {
     const url = new URL(raw);
-    return url.protocol === 'https:' && !url.username && !url.password &&
-      !url.port && !url.hash && CDN_HOSTS.has(url.hostname);
+    if (url.username || url.password || url.port || url.hash) return false;
+    return isAllowedDownloadUrl(url.href);
   } catch { return false; }
 }
 
@@ -44,34 +46,109 @@ export interface DownloadOptions {
   onProgress(bytes: number): void;
 }
 
-/** Only catalog source URLs may initiate a download; every redirect uses an exact host list. */
+/** Budget for the redirect chain, TLS handshake, and first response byte. Redirect hops plus a
+ * slow or distant CDN routinely exceed a few seconds, so this is deliberately generous. */
+const CONNECT_TIMEOUT_MS = 120_000;
+/** Mid-stream stall detection; reset on every received chunk. */
+const STALL_TIMEOUT_MS = 60_000;
+/** Hard ceiling across all attempts. */
+const TOTAL_DOWNLOAD_MS = 60 * 60_000;
+const MAX_ATTEMPTS = 4;
+const RETRY_BASE_DELAY_MS = 2_000;
+const MAX_RETRY_DELAY_MS = 30_000;
+
+/** A transient network condition worth retrying (connect timeout, stall, reset, 5xx/429). */
+class RetryableDownloadError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'RetryableDownloadError';
+  }
+}
+
+function sleep(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const onAbort = () => { clearTimeout(timer); reject(signal.reason ?? new Error('Download cancelled')); };
+    const timer = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, ms);
+    if (signal.aborted) { onAbort(); return; }
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+/** A fetch/stream failure that is not one of our deterministic verification errors. */
+function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  const name = (error as { name?: string } | null)?.name;
+  return name === 'AbortError';
+}
+
+/**
+ * Only catalog source URLs may initiate a download and every redirect hop is re-checked against
+ * the shared host allowlist. Transient network failures are retried with exponential backoff;
+ * verification failures and user cancellation are never retried.
+ */
 export async function downloadVerified(options: DownloadOptions): Promise<void> {
-  const { url, destination, expectedBytes, expectedSha256, signal, onProgress } = options;
+  const { url, destination, expectedBytes, expectedSha256, signal } = options;
   if (!Object.values(MODEL_CATALOG).some((model) => model.artifacts.some((artifact) =>
     artifact.url === url && artifact.bytes === expectedBytes && artifact.sha256 === expectedSha256)) ||
     !isAllowedModelDownloadUrl(url)) throw new Error('Untrusted model download');
   assertSafePath(path.dirname(destination));
+
+  const deadline = Date.now() + TOTAL_DOWNLOAD_MS;
+  let lastError: unknown = new Error('Download failed');
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    if (signal.aborted) throw signal.reason ?? new Error('Download cancelled');
+    if (Date.now() >= deadline) throw new Error('Download exceeded 60 minutes');
+    try {
+      await attemptDownload(options, deadline);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (signal.aborted) throw signal.reason ?? error;
+      const retryable = error instanceof RetryableDownloadError;
+      if (!retryable || attempt === MAX_ATTEMPTS || Date.now() >= deadline) throw error;
+      const delay = Math.min(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), MAX_RETRY_DELAY_MS);
+      await sleep(delay, signal);
+    }
+  }
+  throw lastError;
+}
+
+async function attemptDownload(options: DownloadOptions, deadline: number): Promise<void> {
+  const { url, destination, expectedBytes, expectedSha256, signal, onProgress } = options;
   const partial = `${destination}.${randomUUID()}.partial`;
   const controller = new AbortController();
   const abort = () => controller.abort(signal.reason);
   signal.addEventListener('abort', abort, { once: true });
   if (signal.aborted) abort();
-  const totalTimer = setTimeout(() => controller.abort(new Error('Download exceeded 60 minutes')), 60 * 60_000);
-  let idleTimer = setTimeout(() => controller.abort(new Error('Download connection timed out')), 30_000);
+  const totalTimer = setTimeout(
+    () => controller.abort(new Error('Download exceeded 60 minutes')), Math.max(0, deadline - Date.now()),
+  );
+  let connectTimer: ReturnType<typeof setTimeout> | undefined = setTimeout(
+    () => controller.abort(new RetryableDownloadError('Could not connect to the download server in time')),
+    CONNECT_TIMEOUT_MS,
+  );
+  let idleTimer: ReturnType<typeof setTimeout> | undefined;
+  const clearConnect = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = undefined; } };
+  const clearIdle = () => { if (idleTimer) { clearTimeout(idleTimer); idleTimer = undefined; } };
   let created = false;
   let response: Response | undefined;
   try {
-    response = await modelSession().fetch(url, { redirect: 'follow', signal: controller.signal, cache: 'no-store', credentials: 'omit' });
+    response = await modelSession().fetch(url, {
+      redirect: 'follow', signal: controller.signal, cache: 'no-store',
+      credentials: 'omit', referrerPolicy: 'no-referrer',
+    });
+    clearConnect();
     if (!response.ok || !response.body || !isAllowedModelDownloadUrl(response.url)) {
-      throw new Error(`Download failed (HTTP ${response.status})`);
+      const message = `Download failed (HTTP ${response.status})`;
+      throw response.status >= 500 || response.status === 429 ? new RetryableDownloadError(message) : new Error(message);
     }
     const length = response.headers.get('content-length');
     if (length !== null && Number(length) !== expectedBytes) throw new Error('Unexpected download length');
     const hash = createHash('sha256');
     let received = 0;
     const resetIdle = () => {
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => controller.abort(new Error('Download stalled')), 60_000);
+      clearIdle();
+      idleTimer = setTimeout(() => controller.abort(new RetryableDownloadError('Download stalled')), STALL_TIMEOUT_MS);
     };
     resetIdle();
     const meter = new Transform({ transform(chunk: Buffer, _encoding, callback) {
@@ -82,12 +159,10 @@ export async function downloadVerified(options: DownloadOptions): Promise<void> 
       onProgress(chunk.length);
       callback(null, chunk);
     } });
-    const handle = await fs.promises.open(partial, 'wx', 0o600);
     created = true;
-    await handle.close();
     await pipeline(
       Readable.fromWeb(response.body as unknown as WebReadableStream<Uint8Array>), meter,
-      fs.createWriteStream(partial, { flags: 'wx' }),
+      fs.createWriteStream(partial, { flags: 'wx', mode: 0o600 }),
       { signal: controller.signal },
     );
     controller.signal.throwIfAborted();
@@ -96,12 +171,28 @@ export async function downloadVerified(options: DownloadOptions): Promise<void> 
     assertSafePath(path.dirname(destination));
     if (fs.existsSync(destination)) throw new Error('Download destination already exists');
     await fs.promises.rename(partial, destination);
+  } catch (error) {
+    throw classifyDownloadError(error, controller.signal, signal);
   } finally {
     clearTimeout(totalTimer);
-    clearTimeout(idleTimer);
+    clearConnect();
+    clearIdle();
     signal.removeEventListener('abort', abort);
     controller.abort();
     if (response?.body && !response.body.locked) await response.body.cancel().catch(() => undefined);
     if (created) await fs.promises.rm(partial, { force: true });
   }
+}
+
+/** Translate an aborted fetch/stream into its concrete cause so retry decisions are correct. */
+function classifyDownloadError(error: unknown, attemptSignal: AbortSignal, userSignal: AbortSignal): unknown {
+  if (userSignal.aborted) return userSignal.reason ?? error;
+  const reason = attemptSignal.reason;
+  if (reason instanceof RetryableDownloadError) return reason;
+  if (reason instanceof Error && reason.message === 'Download exceeded 60 minutes') return reason;
+  if (error instanceof RetryableDownloadError) return error;
+  if (isNetworkError(error)) {
+    return new RetryableDownloadError(error instanceof Error ? error.message : String(error), { cause: error });
+  }
+  return error instanceof Error ? error : new Error(String(error));
 }
