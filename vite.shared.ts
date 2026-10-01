@@ -7,4 +7,4 @@ export const alias: AliasOptions = {
 };
 
 /** Native addons are loaded from node_modules at runtime, never bundled. */
-export const nativeExternals = ['better-sqlite3', 'sherpa-onnx-node'];
+export const nativeExternals = ['sherpa-onnx-node'];
