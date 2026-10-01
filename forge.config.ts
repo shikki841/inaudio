@@ -16,16 +16,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
  */
 function runtimeModules(platform: string, arch: string): string[] {
   const sherpaPlatform = platform === 'win32' ? 'win' : platform;
-  return ['better-sqlite3', 'sherpa-onnx-node', `sherpa-onnx-${sherpaPlatform}-${arch}`];
-}
-
-/** better-sqlite3 ships binaries for every target; keep only this one's (glibc and musl). */
-async function pruneForeignPrebuilds(dir: string, platform: string, arch: string): Promise<void> {
-  if (!fs.existsSync(dir)) return;
-  const keep = new Set([`${platform}-${arch}.node`, `${platform}musl-${arch}.node`]);
-  for (const file of await fs.promises.readdir(dir)) {
-    if (!keep.has(file)) await fs.promises.rm(path.join(dir, file), { force: true });
-  }
+  return ['sherpa-onnx-node', `sherpa-onnx-${sherpaPlatform}-${arch}`];
 }
 
 const config: ForgeConfig = {
@@ -36,14 +27,11 @@ const config: ForgeConfig = {
     icon: 'assets/icons/icon',
     extraResource: ['assets/icons'],
     asar: {
-      unpack: '**/node_modules/{sherpa-onnx-*,better-sqlite3}/**/*.{node,so,so.*,dylib,dll}',
+      unpack: '**/node_modules/sherpa-onnx-*/**/*.{node,so,so.*,dylib,dll}',
     },
     extendInfo: {
       NSMicrophoneUsageDescription: 'Inaudio transcribes your voice on this computer.',
     },
-  },
-  rebuildConfig: {
-    onlyModules: ['better-sqlite3'],
   },
   hooks: {
     packageAfterCopy: async (_config, buildPath, _electronVersion, platform, arch) => {
@@ -61,7 +49,6 @@ const config: ForgeConfig = {
           filter: (file) => !/[\\/](src|deps|test|docs)[\\/]/.test(path.relative(source, file)),
         });
       }
-      await pruneForeignPrebuilds(path.join(buildPath, 'node_modules', 'better-sqlite3', 'prebuilds'), platform, arch);
     },
   },
   makers: [
