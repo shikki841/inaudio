@@ -79,7 +79,7 @@ export function HistoryPage() {
                 </IconButton>
               </span>
             </div>
-            <p data-selectable className="text-[15px] leading-relaxed whitespace-pre-wrap">
+            <p data-selectable className="text-base leading-relaxed whitespace-pre-wrap">
               {item.text}
             </p>
           </li>

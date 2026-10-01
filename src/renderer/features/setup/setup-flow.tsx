@@ -127,7 +127,7 @@ export function SetupFlow() {
                 <LogoMark className="size-14" />
               </span>
               <h1 className="text-3xl font-semibold tracking-tight">Talk instead of typing.</h1>
-              <p className="max-w-md text-[15px] text-muted">
+              <p className="max-w-md text-base text-muted">
                 Inaudio turns speech into text in any app and reads text back to you. Everything runs on this computer: no account, no cloud.
               </p>
             </div>

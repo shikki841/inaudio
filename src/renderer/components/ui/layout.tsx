@@ -7,7 +7,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <header className="flex items-end justify-between gap-6 pb-6">
       <div className="grid gap-1">
-        <h1 className="text-[22px] font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {description && <p className="max-w-xl text-sm text-muted">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -23,8 +23,8 @@ export function Separator({ className }: { className?: string }) {
 export function Section({ title, description, children, className }: { title: string; description?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <section className={cn('grid gap-1 py-6 first:pt-0', className)}>
-      <h2 className="text-[13px] font-semibold tracking-wide text-faint uppercase">{title}</h2>
-      {description && <p className="text-[13px] text-muted">{description}</p>}
+      <h2 className="text-sm font-semibold tracking-wide text-faint uppercase">{title}</h2>
+      {description && <p className="text-sm text-muted">{description}</p>}
       <div className="mt-3 divide-y divide-line">{children}</div>
     </section>
   );
@@ -38,7 +38,7 @@ export function Row({ label, description, children, htmlFor }: { label: ReactNod
         <label htmlFor={htmlFor} className="text-sm font-medium">
           {label}
         </label>
-        {description && <p className="text-[13px] text-muted">{description}</p>}
+        {description && <p className="text-sm text-muted">{description}</p>}
       </div>
       {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
     </div>

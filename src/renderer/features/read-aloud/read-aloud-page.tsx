@@ -58,7 +58,7 @@ export function ReadAloudPage() {
           onValueChange={(voiceId) => update.mutate({ tts: { voiceId } })}
           options={KOKORO_VOICES.map((v) => ({ value: v.id, label: v.name, hint: `${v.accent} ${v.gender}` }))}
         />
-        <label className="flex w-64 items-center gap-3 text-[13px] text-muted">
+        <label className="flex w-64 items-center gap-3 text-sm text-muted">
           Speed
           <Slider
             aria-label="Speech speed"
@@ -78,7 +78,7 @@ export function ReadAloudPage() {
         maxLength={MAX_TTS_CHARS}
         placeholder="Text to read aloud"
         aria-label="Text to read aloud"
-        className="min-h-64 w-full resize-y rounded-lg bg-sunken p-4 text-[15px] leading-relaxed outline-none placeholder:text-faint focus:shadow-[0_0_0_2px_var(--accent)]"
+        className="min-h-64 w-full resize-y rounded-lg bg-sunken p-4 text-base leading-relaxed outline-none placeholder:text-faint focus:shadow-[0_0_0_2px_var(--accent)]"
       />
 
       <div className="flex items-center justify-between">

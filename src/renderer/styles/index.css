@@ -65,8 +65,8 @@
 }
 
 :root[data-accent-tone='violet'] {
-  --accent: #7d63ff;
-  --accent-hover: #947cff;
+  --accent: #6148d8;
+  --accent-hover: #5038b8;
   --accent-soft: #ece8ff;
   --on-accent: #ffffff;
 }
@@ -152,7 +152,7 @@
     background: var(--canvas);
     color: var(--ink);
     font-family: var(--font-sans);
-    font-size: 14px;
+    font-size: 1rem;
     -webkit-font-smoothing: antialiased;
     user-select: none;
     overflow: hidden;
@@ -178,11 +178,11 @@
   -webkit-app-region: no-drag;
 }
 
-:root[data-font-size='sm'] body {
-  font-size: 13px;
+:root[data-font-size='sm'] {
+  font-size: 93%;
 }
-:root[data-font-size='lg'] body {
-  font-size: 15px;
+:root[data-font-size='lg'] {
+  font-size: 107%;
 }
 
 :root[data-font-family='system'] {
