@@ -37,10 +37,27 @@ export function createMainWindow(): BrowserWindow {
       spellcheck: false,
       // Dictation keeps capturing while the window is hidden in the tray.
       backgroundThrottling: false,
-      devTools: !!MAIN_WINDOW_VITE_DEV_SERVER_URL,
+      // Keep diagnostics available in packaged builds. The application menu is
+      // removed on Windows/Linux, so the explicit shortcut below is required.
+      devTools: true,
     },
   });
 
+  win.webContents.on('before-input-event', (event, input) => {
+    const isDevToolsShortcut =
+      input.type === 'keyDown' &&
+      (input.key === 'F12' ||
+        (input.key.toLowerCase() === 'i' && input.control && input.shift));
+    if (!isDevToolsShortcut) return;
+    event.preventDefault();
+    win.webContents.toggleDevTools();
+  });
+  win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`Main window failed to load (${errorCode}): ${errorDescription} - ${validatedURL}`);
+  });
+  win.webContents.on('render-process-gone', (_event, details) => {
+    console.error(`Main window renderer exited (${details.reason}): ${details.exitCode}`);
+  });
   win.once('ready-to-show', () => win.show());
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {

@@ -21,6 +21,7 @@ function describe(devices: MediaDeviceInfo[]): AudioDevice[] {
 export function useMediaDevices(kind: MediaDeviceKind) {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   useEffect(() => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
     const load = () =>
       void navigator.mediaDevices
         .enumerateDevices()
