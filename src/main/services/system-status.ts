@@ -1,10 +1,13 @@
-import { app, powerMonitor, systemPreferences } from 'electron';
+import { app, Notification, powerMonitor, systemPreferences } from 'electron';
 import type { PermissionState, SystemStatus } from '@shared/domain/system';
 import type { AppPaths } from '../app/paths';
+import { overlaySupport } from '../app/platform';
 import type { InferenceHost } from './inference-host';
 import type { ModelManager } from './model-manager';
+import type { OverlayController } from './overlay-controller';
 import type { ShortcutService } from './shortcuts';
 import type { TextInserter } from './text-insertion';
+import type { TrayService } from './tray';
 
 function microphonePermission(): PermissionState {
   if (process.platform !== 'darwin' && process.platform !== 'win32') return 'unknown';
@@ -21,6 +24,8 @@ export function collectSystemStatus(deps: {
   inference: InferenceHost;
   shortcuts: ShortcutService;
   inserter: TextInserter;
+  overlay: OverlayController;
+  tray: TrayService;
 }): Omit<SystemStatus, 'window'> {
   return {
     platform: process.platform,
@@ -32,6 +37,9 @@ export function collectSystemStatus(deps: {
       process.platform === 'darwin' ? systemPreferences.isTrustedAccessibilityClient(false) : null,
     insertion: deps.inserter.support(),
     shortcuts: deps.shortcuts.current(),
+    overlay: overlaySupport(),
+    trayVisible: deps.tray.visible(),
+    notificationsSupported: Notification.isSupported(),
     dataDir: deps.paths.data,
     modelsDir: deps.paths.models,
     models: deps.models.list(),

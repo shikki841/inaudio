@@ -6,6 +6,7 @@ import { keys, useSettings } from '@renderer/lib/queries';
 import { useDictation } from '@renderer/stores/dictation-store';
 import { useUi, type Route } from '@renderer/stores/ui-store';
 import { AudioPage } from '@renderer/features/audio/audio-page';
+import { useReportInputDevices } from '@renderer/features/audio/use-devices';
 import { DictationPage } from '@renderer/features/dictation/dictation-page';
 import { HistoryPage } from '@renderer/features/history/history-page';
 import { ModelsPage } from '@renderer/features/models/models-page';
@@ -100,6 +101,8 @@ export function App() {
   const route = useUi((s) => s.route);
   useMainEvents();
   useAppearance();
+  // Reports the enumerated inputs to main, which cannot see them on its own.
+  useReportInputDevices();
   useHoldToTalk(settings?.dictation.mode === 'push-to-talk');
 
   if (isLoading || !settings) {
