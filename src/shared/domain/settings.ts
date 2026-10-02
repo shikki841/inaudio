@@ -147,6 +147,7 @@ export const settingsSchema = z.object({
     restoreClipboard: z.boolean(),
     saveHistory: z.boolean(),
     playCues: z.boolean(),
+    cueVolume: z.number().min(0).max(1),
   }),
   audio: z.object({
     inputDeviceId: deviceIdSchema,
@@ -226,6 +227,7 @@ export const DEFAULT_SETTINGS: Settings = {
     restoreClipboard: true,
     saveHistory: true,
     playCues: true,
+    cueVolume: 0.8,
   },
   audio: { inputDeviceId: 'default', outputDeviceId: 'default', inputGain: 1 },
   stt: { modelId: 'parakeet-tdt-0.6b-v2-int8', threads: 4 },

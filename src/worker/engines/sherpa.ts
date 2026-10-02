@@ -54,7 +54,15 @@ let cached: SherpaModule | null = null;
 export function loadSherpa(): SherpaModule {
   if (!cached) {
     const require = createRequire(__filename);
-    cached = require('sherpa-onnx-node') as SherpaModule;
+    try {
+      cached = require('sherpa-onnx-node') as SherpaModule;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Unable to load the bundled sherpa-onnx runtime. Reinstall the app so its platform native module is present. ${detail}`,
+        { cause: error },
+      );
+    }
   }
   return cached;
 }

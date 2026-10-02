@@ -63,7 +63,7 @@ export function StatusBar() {
   }, []);
 
   return (
-    <header className="drag grid h-[44px] grid-cols-[1fr_auto_1fr] items-center border-b border-line/70 bg-canvas/80 px-3 backdrop-blur-sm">
+    <header className="drag grid h-[44px] grid-cols-[1fr_auto_1fr] items-center bg-canvas/80 px-3 backdrop-blur-sm">
       <nav ref={menuBarRef} className="no-drag flex items-center gap-1" aria-label="Application menu">
         {MENUS.map((menu) => {
           const isOpen = openMenu === menu.label;

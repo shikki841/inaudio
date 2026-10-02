@@ -16,7 +16,8 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
  */
 function runtimeModules(platform: string, arch: string): string[] {
   const sherpaPlatform = platform === 'win32' ? 'win' : platform;
-  return ['sherpa-onnx-node', `sherpa-onnx-${sherpaPlatform}-${arch}`];
+  const sherpaArch = arch === 'ia32' ? 'ia32' : arch === 'arm64' ? 'arm64' : 'x64';
+  return ['sherpa-onnx-node', `sherpa-onnx-${sherpaPlatform}-${sherpaArch}`];
 }
 
 const config: ForgeConfig = {

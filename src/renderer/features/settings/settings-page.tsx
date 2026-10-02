@@ -33,6 +33,7 @@ const SEARCH_ITEMS = [
   { id: 'settings-content-width', label: 'Display width', section: 'Appearance', keywords: 'compact default wide layout' },
   { id: 'settings-accent', label: 'Accent color', section: 'Appearance', keywords: 'blue violet green amber rose color' },
   { id: 'settings-dictation', label: 'Dictation', section: 'Dictation', keywords: 'recording transcript clipboard history' },
+  { id: 'settings-cues', label: 'Sound cues', section: 'Dictation', keywords: 'audio tones volume start stop error' },
   { id: 'settings-overlay', label: 'Recording overlay', section: 'Overlay', keywords: 'pill floating window show hide' },
   { id: 'settings-overlay-visibility', label: 'When to show the overlay', section: 'Overlay', keywords: 'always while active hide idle' },
   { id: 'settings-overlay-placement', label: 'Overlay placement', section: 'Overlay', keywords: 'position corner top bottom left right screen' },
@@ -127,11 +128,8 @@ export function SettingsPage() {
         )}
       </div>
 
-      {/* Sections are laid out in the order they are written. Appearance is written last on
-          purpose — it is the longest section, and keeping it out of the way leaves the
-          settings people change most often at the top of the scroll. */}
       <div className="flex flex-col">
-      <Section id="settings-dictation" title="Dictation">
+      <Section id="settings-dictation" title="Dictation" className="order-2">
         <Row
           label="Recording mode"
           description="Push to talk records while the shortcut is held; it only works while Inaudio is focused. From other apps the shortcut toggles."
@@ -164,7 +162,7 @@ export function SettingsPage() {
             ]}
           />
         </div>
-        <Row label="Play sound cues" description="A short tone when recording starts and stops.">
+        <Row id="settings-cues" label="Play sound cues" description="A short tone when recording starts and stops.">
           <Switch
             aria-label="Play sound cues"
             checked={dictation.playCues}
@@ -288,7 +286,7 @@ export function SettingsPage() {
         </Row>
       </Section>
 
-      <Section id="settings-appearance" title="Appearance" className="pt-0">
+      <Section id="settings-appearance" title="Appearance" className="order-1 pt-0">
         <div id="settings-theme" className="grid gap-3 py-3">
           <p className="text-sm font-medium">Theme mode</p>
           <div role="radiogroup" aria-label="Theme mode" className="grid gap-2 md:grid-cols-3">
@@ -376,7 +374,7 @@ export function SettingsPage() {
         </Row>
       </Section>
 
-      <Section id="settings-app" title="App">
+      <Section id="settings-app" title="App" className="order-7">
         {status.platform !== 'linux' && (
           <Row label="Open at login">
             <Switch
@@ -400,7 +398,7 @@ export function SettingsPage() {
         </Row>
       </Section>
 
-      <Section id="settings-about" title="About">
+      <Section id="settings-about" title="About" className="order-8">
         <Row label="Data folder" description={<span data-selectable>{status.dataDir}</span>}>
           <Button size="sm" variant="ghost" onClick={() => void api.system.revealModels()}>
             <FolderOpen /> Models

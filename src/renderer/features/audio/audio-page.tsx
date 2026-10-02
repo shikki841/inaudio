@@ -124,7 +124,7 @@ export function AudioPage() {
           />
         </Row>
         <Row label="Sound cues" description="Short tones when dictation starts and stops.">
-          <Button size="icon-sm" variant="ghost" aria-label="Preview cue" onClick={() => playCue('start')}>
+          <Button size="icon-sm" variant="ghost" aria-label="Preview cue" onClick={() => void playCue('start', { volume: settings.dictation.cueVolume, outputDeviceId: settings.audio.outputDeviceId })}>
             <Volume2 />
           </Button>
           <Switch
@@ -132,6 +132,19 @@ export function AudioPage() {
             checked={settings.dictation.playCues}
             onCheckedChange={(playCues) => update.mutate({ dictation: { playCues } })}
           />
+        </Row>
+        <Row label="Cue volume" description="Controls the volume of the start, stop and error tones.">
+          <div className="flex w-72 items-center gap-3">
+            <Slider
+              aria-label="Cue volume"
+              min={0}
+              max={1}
+              step={0.05}
+              value={[settings.dictation.cueVolume]}
+              onValueChange={([cueVolume]) => cueVolume !== undefined && update.mutate({ dictation: { cueVolume } })}
+            />
+            <span className="w-12 font-mono text-sm tabular-nums">{Math.round(settings.dictation.cueVolume * 100)}%</span>
+          </div>
         </Row>
       </Section>
     </div>
