@@ -40,7 +40,7 @@ export function trayRecordingImage(): NativeImage {
     const pixels = base.toBitmap({ scaleFactor });
     if (pixels.length < width * height * 4) continue;
     for (let i = 0; i + 3 < pixels.length; i += 4) {
-      const alpha = pixels[i + 3];
+      const alpha = pixels[i + 3] ?? 0;
       if (alpha === 0) continue;
       pixels[i] = Math.round((RECORD.b * alpha) / 255);
       pixels[i + 1] = Math.round((RECORD.g * alpha) / 255);

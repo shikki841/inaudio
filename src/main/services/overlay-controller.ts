@@ -1,4 +1,4 @@
-import { BrowserWindow, screen, type Display } from 'electron';
+import { screen, type BrowserWindow, type Display } from 'electron';
 import { MODEL_CATALOG, type ModelId } from '@shared/domain/models';
 import type { Settings } from '@shared/domain/settings';
 import type { AudioDevice, DictationState, OverlayState } from '@shared/domain/system';
@@ -16,8 +16,6 @@ interface OverlayOptions {
   /** Installed recognition models, in catalog order. */
   models(): { id: ModelId; label: string }[];
 }
-
-const DISPLAY_EVENTS = ['display-added', 'display-removed', 'display-metrics-changed'] as const;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
@@ -37,7 +35,9 @@ export class OverlayController {
   private readonly onDisplayChange = () => this.place();
 
   constructor(private readonly options: OverlayOptions) {
-    for (const event of DISPLAY_EVENTS) screen.on(event, this.onDisplayChange);
+    screen.on('display-added', this.onDisplayChange);
+    screen.on('display-removed', this.onDisplayChange);
+    screen.on('display-metrics-changed', this.onDisplayChange);
   }
 
   /** Reconciles the window with the current settings. Safe to call as often as needed. */
@@ -96,7 +96,9 @@ export class OverlayController {
 
   destroy(): void {
     this.disposed = true;
-    for (const event of DISPLAY_EVENTS) screen.removeListener(event, this.onDisplayChange);
+    screen.removeListener('display-added', this.onDisplayChange);
+    screen.removeListener('display-removed', this.onDisplayChange);
+    screen.removeListener('display-metrics-changed', this.onDisplayChange);
     this.teardown();
   }
 

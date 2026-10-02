@@ -72,7 +72,8 @@ const KEYS = new Set<string>([
 export function isAccelerator(value: string): boolean {
   const parts = value.split('+');
   if (parts.length > 5) return false;
-  if (!KEYS.has(parts[parts.length - 1])) return false;
+  const key = parts[parts.length - 1];
+  if (!key || !KEYS.has(key)) return false;
   const seen = new Set<string>();
   for (const part of parts.slice(0, -1)) {
     if (!MODIFIERS.has(part) || seen.has(part)) return false;

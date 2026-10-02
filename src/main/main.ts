@@ -108,7 +108,7 @@ function bootstrap(): void {
         app.quit();
       },
     },
-    services?.settings.get() ?? DEFAULT_SETTINGS,
+    DEFAULT_SETTINGS,
   );
 
   const shortcuts = new ShortcutService({

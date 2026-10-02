@@ -1,6 +1,6 @@
 import { globalShortcut } from 'electron';
 import type { Settings } from '@shared/domain/settings';
-import type { ShortcutId, ShortcutState, ShortcutStatus } from '@shared/domain/system';
+import type { ShortcutState, ShortcutStatus } from '@shared/domain/system';
 
 const OFF: ShortcutStatus = 'off';
 const REGISTERED: ShortcutStatus = 'registered';

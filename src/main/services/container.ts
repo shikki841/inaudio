@@ -83,7 +83,7 @@ export function createServices(options: {
    * and an empty report means the window has not enumerated yet, so nothing is rejected.
    */
   function knownInputDevice(id: string): boolean {
-    if (RESERVED_DEVICE_IDS.includes(id)) return true;
+    if (RESERVED_DEVICE_IDS.some((reserved) => reserved === id)) return true;
     if (!reportedDevices.length) return true;
     return reportedDevices.some((device) => device.id === id);
   }
@@ -104,7 +104,7 @@ export function createServices(options: {
       models
         .list()
         .filter((model) => model.kind === 'stt' && models.isInstalled(model.id))
-        .map((model) => ({ id: model.id, label: model.name })),
+        .map((model) => ({ id: model.id, label: MODEL_CATALOG[model.id].name })),
   });
   const dictation = new DictationController({
     settings: () => settings.get(),
