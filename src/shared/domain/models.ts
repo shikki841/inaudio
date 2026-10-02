@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const MODEL_IDS = [
   'parakeet-tdt-0.6b-v2-int8',
   'parakeet-tdt-0.6b-v3-int8',
+  'nemotron-speech-streaming-en-0.6b-560ms-int8',
   'kokoro-en-v0_19',
 ] as const;
 
@@ -32,18 +33,23 @@ export interface ModelArchiveArtifact {
   stripPrefix: string;
   /** Files that must exist after extraction. */
   expect: string[];
+  /** Trusted extracted-file inventory for archives other than legacy fixtures. */
+  files?: { path: string; bytes: number; sha256: string }[];
+  /** Maximum decompressed size for archives whose contents are hash-anchored by the archive digest. */
+  unpackedBytes?: number;
 }
 
 export type ModelArtifact = ModelFileArtifact | ModelArchiveArtifact;
 
 export interface SttVariant {
   kind: 'stt';
-  modelType: 'nemo_transducer';
+  modelType: 'nemo_transducer' | 'nemotron';
   sampleRate: 16000;
   encoder: string;
   decoder: string;
   joiner: string;
   tokens: string;
+  chunkMs?: 80 | 160 | 560 | 1120;
 }
 
 export interface TtsVariant {
@@ -72,6 +78,7 @@ export interface ModelDescriptor {
 const HF = 'https://huggingface.co';
 const parakeetV2 = `${HF}/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8/resolve/main`;
 const parakeetV3 = `${HF}/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main`;
+const nemotron560 = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models';
 
 const parakeetLayout: SttVariant = {
   kind: 'stt',
@@ -131,7 +138,33 @@ export const MODEL_CATALOG: Record<ModelId, ModelDescriptor> = {
     runtime: 'sherpa-onnx',
     name: 'Parakeet TDT 0.6B v3',
     summary: 'Speech recognition for 25 European languages, detected automatically.',
-    languages: ['bg', 'hr', 'cs', 'da', 'nl', 'en', 'et', 'fi', 'fr', 'de', 'el', 'hu', 'it', 'lv', 'lt', 'mt', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'es', 'sv', 'uk'],
+    languages: [
+      'bg',
+      'hr',
+      'cs',
+      'da',
+      'nl',
+      'en',
+      'et',
+      'fi',
+      'fr',
+      'de',
+      'el',
+      'hu',
+      'it',
+      'lv',
+      'lt',
+      'mt',
+      'pl',
+      'pt',
+      'ro',
+      'ru',
+      'sk',
+      'sl',
+      'es',
+      'sv',
+      'uk',
+    ],
     license: 'CC-BY-4.0',
     source: 'https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3',
     layout: parakeetLayout,
@@ -163,6 +196,65 @@ export const MODEL_CATALOG: Record<ModelId, ModelDescriptor> = {
         url: `${parakeetV3}/tokens.txt`,
         bytes: 93_939,
         sha256: 'd58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d',
+      },
+    ],
+  },
+  'nemotron-speech-streaming-en-0.6b-560ms-int8': {
+    id: 'nemotron-speech-streaming-en-0.6b-560ms-int8',
+    kind: 'stt',
+    runtime: 'sherpa-onnx',
+    name: 'Nemotron ASR Streaming (560 ms)',
+    summary:
+      'Low-latency English streaming speech recognition with punctuation and capitalization.',
+    languages: ['en'],
+    license: 'NVIDIA Open Model License',
+    source: 'https://huggingface.co/nvidia/nemotron-speech-streaming-en-0.6b',
+    layout: {
+      kind: 'stt',
+      modelType: 'nemotron',
+      sampleRate: 16000,
+      encoder: 'encoder.int8.onnx',
+      decoder: 'decoder.int8.onnx',
+      joiner: 'joiner.int8.onnx',
+      tokens: 'tokens.txt',
+      chunkMs: 560,
+    },
+    artifacts: [
+      {
+        type: 'archive',
+        url: `${nemotron560}/sherpa-onnx-nemotron-speech-streaming-en-0.6b-560ms-int8-2026-04-25.tar.bz2`,
+        bytes: 463_945_051,
+        sha256: '78e2b79fcf7271553a74402a76b771b09ea40117a39566a79f52235b23db6358',
+        stripPrefix: 'sherpa-onnx-nemotron-speech-streaming-en-0.6b-560ms-int8-2026-04-25',
+        expect: ['encoder.int8.onnx', 'decoder.int8.onnx', 'joiner.int8.onnx', 'tokens.txt'],
+        files: [
+          {
+            path: 'encoder.int8.onnx',
+            bytes: 652_916_849,
+            sha256: '7d932213491ad355c6e5576705dc3494731a52af87d7a1b954559340147909d8',
+          },
+          {
+            path: 'decoder.int8.onnx',
+            bytes: 7_257_753,
+            sha256: '0be9702c2f427a2b6bb241d298e0d3836a558de1f5b9fd3018f1cce6e2b3fa98',
+          },
+          {
+            path: 'joiner.int8.onnx',
+            bytes: 1_735_862,
+            sha256: 'a35eac38a22ebceb04d230ed7afe0d68f446ba6914a036b97f14fece95967e23',
+          },
+          {
+            path: 'tokens.txt',
+            bytes: 8_952,
+            sha256: 'dc0b4584ab2e4ddbf888425c076c61b736e7356a015250db7d307e6f1a8188ff',
+          },
+          { path: 'README.md', bytes: 158, sha256: '' },
+          { path: 'test_wavs/8k.wav', bytes: 77_244, sha256: '' },
+          { path: 'test_wavs/0.wav', bytes: 212_044, sha256: '' },
+          { path: 'test_wavs/1.wav', bytes: 534_924, sha256: '' },
+          { path: 'test_wavs/trans.txt', bytes: 449, sha256: '' },
+        ],
+        unpackedBytes: 700_000_000,
       },
     ],
   },
@@ -212,12 +304,14 @@ export const KOKORO_VOICES = [
   { id: '10', sid: 10, name: 'Lewis', accent: 'British', gender: 'male' },
 ] as const;
 
-export const voiceIdSchema = z.enum(
-  KOKORO_VOICES.map((v) => v.id) as [string, ...string[]],
-);
+export const voiceIdSchema = z.enum(KOKORO_VOICES.map((v) => v.id) as [string, ...string[]]);
 export type VoiceId = (typeof KOKORO_VOICES)[number]['id'];
 
-export const sttModelIdSchema = z.enum(['parakeet-tdt-0.6b-v2-int8', 'parakeet-tdt-0.6b-v3-int8']);
+export const sttModelIdSchema = z.enum([
+  'parakeet-tdt-0.6b-v2-int8',
+  'parakeet-tdt-0.6b-v3-int8',
+  'nemotron-speech-streaming-en-0.6b-560ms-int8',
+]);
 export const ttsModelIdSchema = z.enum(['kokoro-en-v0_19']);
 
 export function modelBytes(model: ModelDescriptor): number {
@@ -240,7 +334,9 @@ export function isAllowedDownloadUrl(raw: string): boolean {
   try {
     const url = new URL(raw);
     if (url.protocol !== 'https:') return false;
-    return DOWNLOAD_HOST_ALLOWLIST.some((h) => url.hostname === h || url.hostname.endsWith(`.${h}`));
+    return DOWNLOAD_HOST_ALLOWLIST.some(
+      (h) => url.hostname === h || url.hostname.endsWith(`.${h}`),
+    );
   } catch {
     return false;
   }

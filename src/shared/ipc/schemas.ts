@@ -11,6 +11,7 @@ export const MAX_TTS_CHARS = 5_000;
 export const EXTERNAL_LINKS = {
   parakeetV2: 'https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2',
   parakeetV3: 'https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3',
+  nemotron: 'https://huggingface.co/nvidia/nemotron-speech-streaming-en-0.6b',
   kokoro: 'https://huggingface.co/hexgrad/Kokoro-82M',
   sherpaOnnx: 'https://github.com/k2-fsa/sherpa-onnx',
 } as const;
@@ -36,18 +37,19 @@ export const schemas = {
   }),
   historyQuery: historyQuerySchema,
   historyId: z.string().uuid(),
-  windowAction: z.enum(['minimize', 'maximize-toggle', 'close'] as [WindowAction, ...WindowAction[]]),
-  menuCommand: z.enum(
-    [
-      'file.open-models-folder',
-      'file.run-setup',
-      'file.quit',
-      'view.dictation',
-      'view.history',
-      'view.read-aloud',
-      'view.models',
-      'view.audio',
-      'view.settings',
-    ] as [AppMenuCommand, ...AppMenuCommand[]],
-  ),
+  windowAction: z.enum(['minimize', 'maximize-toggle', 'close'] as [
+    WindowAction,
+    ...WindowAction[],
+  ]),
+  menuCommand: z.enum([
+    'file.open-models-folder',
+    'file.run-setup',
+    'file.quit',
+    'view.dictation',
+    'view.history',
+    'view.read-aloud',
+    'view.models',
+    'view.audio',
+    'view.settings',
+  ] as [AppMenuCommand, ...AppMenuCommand[]]),
 };

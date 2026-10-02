@@ -1,5 +1,6 @@
 import type { WorkerEvent, WorkerRequest, WorkerResponse } from '@shared/worker/protocol';
 import { ParakeetEngine } from './engines/stt/parakeet-engine';
+import { NemotronEngine } from './engines/stt/nemotron-engine';
 import { KokoroEngine } from './engines/tts/kokoro-engine';
 import type { SpeechToTextEngine, TextToSpeechEngine } from './engines/types';
 
@@ -20,12 +21,25 @@ async function handle(request: WorkerRequest): Promise<unknown> {
     case 'stt:load':
       stt?.dispose();
       stt = null;
-      stt = await ParakeetEngine.create(request.modelId, request.dir, request.layout, request.threads);
+      stt =
+        request.layout.modelType === 'nemotron'
+          ? NemotronEngine.create(request.modelId, request.dir, request.layout, request.threads)
+          : await ParakeetEngine.create(
+              request.modelId,
+              request.dir,
+              request.layout,
+              request.threads,
+            );
       return { modelId: request.modelId };
     case 'tts:load':
       tts?.dispose();
       tts = null;
-      tts = await KokoroEngine.create(request.modelId, request.dir, request.layout, request.threads);
+      tts = await KokoroEngine.create(
+        request.modelId,
+        request.dir,
+        request.layout,
+        request.threads,
+      );
       return { modelId: request.modelId };
     case 'stt:transcribe':
       if (!stt) throw new Error('No speech-to-text model is loaded');
@@ -44,7 +58,11 @@ async function handle(request: WorkerRequest): Promise<unknown> {
       }
       return null;
     case 'ping':
-      return { loadedStt: stt?.modelId, loadedTts: tts?.modelId, memoryRss: process.memoryUsage().rss };
+      return {
+        loadedStt: stt?.modelId,
+        loadedTts: tts?.modelId,
+        memoryRss: process.memoryUsage().rss,
+      };
   }
 }
 
@@ -53,7 +71,11 @@ port.on('message', ({ data }: { data: WorkerRequest }) => {
     try {
       send({ id: data.id, ok: true, result: await handle(data) });
     } catch (error) {
-      send({ id: data.id, ok: false, error: error instanceof Error ? error.message : String(error) });
+      send({
+        id: data.id,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   });
 });

@@ -13,6 +13,7 @@ import { useModelAction } from '@renderer/lib/queries';
 const LINKS: Record<string, ExternalLinkId> = {
   'parakeet-tdt-0.6b-v2-int8': 'parakeetV2',
   'parakeet-tdt-0.6b-v3-int8': 'parakeetV3',
+  'nemotron-speech-streaming-en-0.6b-560ms-int8': 'nemotron',
   'kokoro-en-v0_19': 'kokoro',
 };
 
@@ -32,7 +33,8 @@ export function ModelRow({
   const total = status.bytesTotal || modelBytes(model);
   const pct = total ? (status.bytesDone / total) * 100 : 0;
   const active = status.state === 'downloading' || status.state === 'verifying';
-  const error = status.error ?? (actions.download.error ? errorMessage(actions.download.error) : undefined);
+  const error =
+    status.error ?? (actions.download.error ? errorMessage(actions.download.error) : undefined);
   const link = LINKS[status.id];
 
   return (
@@ -42,17 +44,29 @@ export function ModelRow({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-base font-medium">{model.name}</span>
             {selected && <Badge tone="accent">In use</Badge>}
-            {status.state === 'installed' && <Badge tone="success"><Check className="size-3" /> Installed</Badge>}
+            {status.state === 'installed' && (
+              <Badge tone="success">
+                <Check className="size-3" /> Installed
+              </Badge>
+            )}
             {status.loaded && <Badge>Loaded</Badge>}
           </div>
           {!compact && <p className="text-sm text-muted">{model.summary}</p>}
           <p className="text-xs text-faint">
-            {formatBytes(modelBytes(model))} · {model.languages.length > 3 ? `${model.languages.length} languages` : model.languages.join(', ')} · {model.license}
+            {formatBytes(modelBytes(model))} ·{' '}
+            {model.languages.length > 3
+              ? `${model.languages.length} languages`
+              : model.languages.join(', ')}{' '}
+            · {model.license}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {link && !compact && (
-            <IconButton label="Model card" size="icon-sm" onClick={() => void api.system.openLink(link)}>
+            <IconButton
+              label="Model card"
+              size="icon-sm"
+              onClick={() => void api.system.openLink(link)}
+            >
               <ExternalLink />
             </IconButton>
           )}
@@ -92,7 +106,9 @@ export function ModelRow({
         <div className="grid gap-1.5">
           <Progress value={pct} label={`Downloading ${model.name}`} />
           <span className="text-xs text-faint tabular-nums">
-            {status.state === 'verifying' ? 'Verifying and unpacking…' : `${formatBytes(status.bytesDone)} of ${formatBytes(total)}`}
+            {status.state === 'verifying'
+              ? 'Verifying and unpacking…'
+              : `${formatBytes(status.bytesDone)} of ${formatBytes(total)}`}
           </span>
         </div>
       )}
