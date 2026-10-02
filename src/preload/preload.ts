@@ -37,7 +37,15 @@ const api: InaudioApi = {
   dictation: {
     transcribe: (samples, { insert }) =>
       ipcRenderer.invoke(IPC.dictationTranscribe, { samples, sampleRate: 16000, insert }),
-    setPhase: (phase) => ipcRenderer.send(IPC.dictationPhase, phase),
+    report: (state) => ipcRenderer.send(IPC.dictationState, state),
+  },
+  audio: {
+    report: (devices) => ipcRenderer.send(IPC.audioDevices, devices),
+  },
+  overlay: {
+    act: (action) => ipcRenderer.invoke(IPC.overlayAction, action),
+    hover: (hovering) => ipcRenderer.send(IPC.overlayHover, hovering),
+    menu: (open) => ipcRenderer.send(IPC.overlayMenu, open),
   },
   text: {
     insert: (text) => ipcRenderer.invoke(IPC.textInsert, text),
@@ -57,6 +65,7 @@ const api: InaudioApi = {
     onModelProgress: (listener) => subscribe(EVENTS.modelProgress, listener),
     onStatusChanged: (listener) => subscribe(EVENTS.statusChanged, listener),
     onSettingsChanged: (listener) => subscribe(EVENTS.settingsChanged, listener),
+    onOverlayState: (listener) => subscribe(EVENTS.overlayState, listener),
   },
 };
 

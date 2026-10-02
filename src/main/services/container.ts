@@ -1,11 +1,21 @@
 import { clipboard, type BrowserWindow } from 'electron';
-import { MODEL_CATALOG, MODEL_IDS, type ModelId, type ModelStatus } from '@shared/domain/models';
-import type { SystemStatus } from '@shared/domain/system';
+import {
+  MODEL_CATALOG,
+  MODEL_IDS,
+  sttModelIdSchema,
+  ttsModelIdSchema,
+  type ModelId,
+  type ModelStatus,
+} from '@shared/domain/models';
+import type { AudioDevice, AppCommand, SystemStatus } from '@shared/domain/system';
+import { RESERVED_DEVICE_IDS, type SettingsPatch } from '@shared/domain/settings';
 import { MAX_TRANSCRIPT_CHARS } from '@shared/domain/history';
 import type { AppPaths } from '../app/paths';
+import { DictationController } from './dictation-controller';
 import { HistoryRepository } from './history-repository';
 import { InferenceHost } from './inference-host';
 import { ModelManager } from './model-manager';
+import { OverlayController } from './overlay-controller';
 import { SettingsStore } from './settings-store';
 import type { ShortcutService } from './shortcuts';
 import { collectSystemStatus } from './system-status';
@@ -21,6 +31,16 @@ export interface Services {
   inserter: TextInserter;
   shortcuts: ShortcutService;
   tray: TrayService;
+  overlay: OverlayController;
+  dictation: DictationController;
+  /** Records the devices the capturing window can see, for the tray and the id allow-list. */
+  reportDevices(devices: AudioDevice[]): void;
+  /** The devices last reported, so the overlay can offer the same set the tray does. */
+  listDevices(): AudioDevice[];
+  /** Installed recognition models, in catalog order. */
+  installedSttModels(): { id: ModelId; label: string }[];
+  /** Validates a settings patch against the known devices before persisting it. */
+  updateSettings(patch: SettingsPatch): Settings;
   window(): BrowserWindow | null;
   status(): SystemStatus;
   runModel<T>(id: ModelId, operation: () => Promise<T>): Promise<T>;
@@ -39,6 +59,10 @@ export function createServices(options: {
   tray: TrayService;
   shortcuts: ShortcutService;
   window(): BrowserWindow | null;
+  /** Delivers a command to the capturing window. Returns false when it cannot receive one. */
+  command(command: AppCommand): boolean;
+  /** Brings the capturing window back, because capture needs a live renderer. */
+  showWindow(): void;
 }): Services {
   const { paths } = options;
   const settings = new SettingsStore(paths.settings);
@@ -46,6 +70,49 @@ export function createServices(options: {
   const models = new ModelManager(paths.models, paths.downloads, (id) => inference.isLoaded(id));
   const history = new HistoryRepository(paths.database);
   const inserter = new TextInserter();
+  // The capturing window is the only source of device ids, so its last report doubles as
+  // the allow-list. Nothing else may name an input device.
+  const reportedDevices: AudioDevice[] = [];
+  function reportDevices(devices: AudioDevice[]): void {
+    reportedDevices.length = 0;
+    reportedDevices.push(...devices);
+    options.tray.setDevices(reportedDevices);
+  }
+  /**
+   * Rejects an input id the capturing window never enumerated. Reserved ids always pass,
+   * and an empty report means the window has not enumerated yet, so nothing is rejected.
+   */
+  function knownInputDevice(id: string): boolean {
+    if (RESERVED_DEVICE_IDS.includes(id)) return true;
+    if (!reportedDevices.length) return true;
+    return reportedDevices.some((device) => device.id === id);
+  }
+  function applySettings(patch: SettingsPatch): Settings {
+    const deviceId = patch.audio?.inputDeviceId;
+    if (deviceId !== undefined && !knownInputDevice(deviceId)) {
+      throw new Error('Unknown input device');
+    }
+    return settings.update(patch);
+  }
+  const overlay = new OverlayController({
+    settings: () => settings.get(),
+    window: options.window,
+    // The overlay offers exactly what the tray offers: the last enumeration this process
+    // received, and the recognition models actually on disk.
+    devices: () => reportedDevices,
+    models: () =>
+      models
+        .list()
+        .filter((model) => model.kind === 'stt' && models.isInstalled(model.id))
+        .map((model) => ({ id: model.id, label: model.name })),
+  });
+  const dictation = new DictationController({
+    settings: () => settings.get(),
+    command: options.command,
+    showWindow: options.showWindow,
+    overlay,
+    onState: (state) => options.tray.setPhase(state.phase, state.startedAt),
+  });
   type Lifecycle = Pick<ModelStatus, 'loadState' | 'health' | 'lastUsedAt' | 'error'>;
   const lifecycle = new Map<ModelId, Lifecycle>();
   let queue: Promise<unknown> = Promise.resolve();
@@ -174,8 +241,19 @@ export function createServices(options: {
   return {
     paths, settings, history, models, inference, inserter,
     shortcuts: options.shortcuts, tray: options.tray, window: options.window,
+    overlay, dictation, reportDevices, updateSettings: applySettings,
+    listDevices: () => reportedDevices,
+    installedSttModels: () =>
+      MODEL_IDS.filter((id) => MODEL_CATALOG[id].kind === 'stt' && models.isInstalled(id)).map(
+        (id) => ({ id, label: MODEL_CATALOG[id].name }),
+      ),
     status: () => {
-      const base = collectSystemStatus({ paths, models, inference, shortcuts: options.shortcuts, inserter });
+      const base = collectSystemStatus({
+        paths, models, inference, inserter,
+        shortcuts: options.shortcuts,
+        overlay,
+        tray: options.tray,
+      });
       const win = options.window();
       return { ...base, models: modelStatuses(), window: {
         maximized: !!win && !win.isDestroyed() && win.isMaximized(),
@@ -196,13 +274,19 @@ export function createServices(options: {
     }),
     unloadModel: (id) => serial(async () => { await unload(id); scheduleIdle(); }),
     activateModel: (id) => serial(async () => {
-      await load(id);
+      // A model only ever becomes active in the kind it belongs to, so the id is narrowed
+      // by the catalog rather than asserted: what is persisted is always schema-valid.
       const model = MODEL_CATALOG[id];
       if (model.kind === 'stt') {
-        const sttId = id as Extract<ModelId, 'parakeet-tdt-0.6b-v2-int8' | 'parakeet-tdt-0.6b-v3-int8'>;
-        settings.update({ stt: { modelId: sttId } });
+        const sttId = sttModelIdSchema.safeParse(id);
+        if (!sttId.success) throw new Error(`${model.name} cannot be used for dictation`);
+        await load(id);
+        settings.update({ stt: { modelId: sttId.data } });
       } else {
-        settings.update({ tts: { modelId: 'kokoro-en-v0_19' } });
+        const ttsId = ttsModelIdSchema.safeParse(id);
+        if (!ttsId.success) throw new Error(`${model.name} cannot be used for speech`);
+        await load(id);
+        settings.update({ tts: { modelId: ttsId.data } });
       }
       notify();
     }),
@@ -224,6 +308,8 @@ export function createServices(options: {
     dispose: async () => {
       closing = true;
       clearTimeout(idleTimer);
+      dictation.dispose();
+      overlay.destroy();
       models.cancelAll();
       await inference.stop();
       await queue;

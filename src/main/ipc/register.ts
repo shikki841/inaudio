@@ -1,4 +1,4 @@
-import { app, ipcMain, shell } from 'electron';
+import { app, shell } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { voiceSid, type ModelId } from '@shared/domain/models';
@@ -6,10 +6,9 @@ import type { Transcript } from '@shared/domain/history';
 import type { TranscribeResult } from '@shared/ipc/api';
 import { EVENTS, IPC } from '@shared/ipc/channels';
 import { EXTERNAL_LINKS, schemas } from '@shared/ipc/schemas';
-import { assertTrustedSender } from '../security/trusted-origin';
 import { openTrustedExternal } from '../security/hardening';
 import type { Services } from '../services/container';
-import { handle } from './handle';
+import { handle, handleOn, listen } from './handle';
 
 const none = z.undefined();
 
@@ -57,7 +56,9 @@ export function registerIpc(services: Services): void {
   });
 
   handle(IPC.settingsGet, none, () => settings.get());
-  handle(IPC.settingsUpdate, schemas.settingsPatch, (patch) => settings.update(patch));
+  handleOn('main', IPC.settingsUpdate, schemas.settingsPatch, (patch) =>
+    services.updateSettings(patch),
+  );
 
   handle(IPC.modelsList, none, () => services.modelStatuses());
   handle(IPC.modelsDownload, schemas.modelId, (id) => {
@@ -93,6 +94,9 @@ export function registerIpc(services: Services): void {
     };
     if (current.dictation.saveHistory) history.add(transcript);
     response.transcript = transcript;
+    // The overlay shows the text inline, so this is a no-op unless the overlay is off and
+    // the user asked for native notifications.
+    services.dictation.notifyTranscript(transcript.text);
 
     if (insert) {
       const mode = current.dictation.insertMode;
@@ -111,14 +115,67 @@ export function registerIpc(services: Services): void {
     return response;
   });
 
-  ipcMain.on(IPC.dictationPhase, (event, raw: unknown) => {
-    try {
-      assertTrustedSender(event);
-    } catch {
+  // The capturing window reports what it is actually doing; the controller owns the phase
+  // and mirrors it into the tray and the overlay, so no other surface can set it.
+  listen('main', IPC.dictationState, schemas.dictationState, (state) => {
+    services.dictation.report(state);
+  });
+  // Device ids only ever come from the window that can enumerate them. The report feeds
+  // the tray submenu and becomes the allow-list for settings:update.
+  listen('main', IPC.audioDevices, schemas.audioDevices, (devices) => {
+    services.reportDevices(devices);
+  });
+
+  // The overlay may only ask for its fixed command list, and only from the overlay window.
+  handleOn('overlay', IPC.overlayAction, schemas.overlayAction, (action) => {
+    if (action.type === 'select-microphone') {
+      // Only a device this process has already been told about. The switch restarts
+      // capture, so it goes through the same validated path the tray and settings use.
+      if (!services.listDevices().some((device) => device.id === action.id)) {
+        throw new Error('Unknown input device');
+      }
+      services.updateSettings({ audio: { inputDeviceId: action.id } });
       return;
     }
-    const phase = schemas.phase.safeParse(raw);
-    if (phase.success) services.tray.setPhase(phase.data);
+    if (action.type === 'select-model') {
+      // Persisting the id alone would leave the old model resident, so activation does both.
+      if (!services.installedSttModels().some((model) => model.id === action.id)) {
+        throw new Error('Unknown recognition model');
+      }
+      return services.activateModel(action.id);
+    }
+    const command = action.type;
+    if (command === 'start') {
+      services.dictation.start();
+      return;
+    }
+    if (command === 'stop') {
+      services.dictation.stop();
+      return;
+    }
+    if (command === 'cancel') {
+      services.dictation.cancel();
+      return;
+    }
+    if (command === 'hide') {
+      settings.update({ overlay: { enabled: false } });
+      return;
+    }
+    // open-app and open-audio both need the real window, which the overlay does not own.
+    const win = services.window();
+    if (command === 'open-audio') settings.update({ overlay: { enabled: false } });
+    if (!win || win.isDestroyed()) return;
+    win.show();
+    win.focus();
+    if (command === 'open-audio') win.webContents.send(EVENTS.command, 'navigate:audio');
+  });
+  // Hover is a hint, not a command: it only widens what the pill can receive.
+  listen('overlay', IPC.overlayHover, schemas.overlayHover, (hovering) => {
+    services.overlay.setHover(hovering);
+  });
+  // A menu opening is not a command either: it only grows the window so the panel fits.
+  listen('overlay', IPC.overlayMenu, schemas.overlayMenu, (open) => {
+    services.overlay.setMenu(open);
   });
 
   handle(IPC.textInsert, schemas.text, (text) =>

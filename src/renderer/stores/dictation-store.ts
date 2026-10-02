@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Transcript } from '@shared/domain/history';
-import type { DictationPhase } from '@shared/domain/system';
+import type { DictationPhase, DictationState as ReportedState } from '@shared/domain/system';
 import { api, errorMessage } from '@renderer/lib/api';
 import { queryClient, keys } from '@renderer/lib/queries';
 import type { Settings } from '@shared/domain/settings';
@@ -9,6 +9,8 @@ import { Recorder, TARGET_RATE, trimSilence } from '@renderer/features/dictation
 
 const MIN_SPEECH_MS = 250;
 const MAX_RECORDING_MS = 10 * 60 * 1000;
+/** The overlay draws a level meter, but it does not need one update per animation frame. */
+const LEVEL_REPORT_MS = 100;
 
 interface DictationState {
   phase: DictationPhase;
@@ -31,9 +33,41 @@ function settings(): Settings | undefined {
 }
 
 export const useDictation = create<DictationState>((set, get) => {
-  const setPhase = (phase: DictationPhase, patch: Partial<DictationState> = {}) => {
+  /**
+   * The main process owns the authoritative phase and drives the tray and the overlay from
+   * it, so every local change is reported. Nothing renders the reported state back, which
+   * keeps this one-directional and impossible to loop.
+   */
+  const report = (): void => {
+    const { phase, startedAt, level, message } = get();
+    const payload: ReportedState = {
+      phase,
+      startedAt: startedAt ?? 0,
+      level: phase === 'listening' ? level : 0,
+      message: message ?? '',
+    };
+    api.dictation.report(payload);
+  };
+
+  const setPhase = (phase: DictationPhase, patch: Partial<DictationState> = {}): void => {
     set({ phase, ...patch });
-    api.dictation.setPhase(phase);
+    report();
+  };
+
+  let levelTimer: ReturnType<typeof setInterval> | undefined;
+  const stopLevelReports = (): void => {
+    if (levelTimer) clearInterval(levelTimer);
+    levelTimer = undefined;
+  };
+  const startLevelReports = (): void => {
+    stopLevelReports();
+    levelTimer = setInterval(() => {
+      if (get().phase !== 'listening') {
+        stopLevelReports();
+        return;
+      }
+      report();
+    }, LEVEL_REPORT_MS);
   };
 
   return {
@@ -55,6 +89,7 @@ export const useDictation = create<DictationState>((set, get) => {
         });
         if (current?.dictation.playCues) playCue('start');
         setPhase('listening', { startedAt: Date.now(), message: null, level: 0 });
+        startLevelReports();
         limitTimer = setTimeout(() => void get().stop(), MAX_RECORDING_MS);
         // Warm the STT model while the user speaks.
         if (current) void api.models.load(current.stt.modelId).catch(() => undefined);
@@ -73,6 +108,7 @@ export const useDictation = create<DictationState>((set, get) => {
     async stop({ insert = true } = {}) {
       if (get().phase !== 'listening') return;
       clearTimeout(limitTimer);
+      stopLevelReports();
       const current = settings();
       const raw = await recorder.stop();
       if (current?.dictation.playCues) playCue('stop');
@@ -99,6 +135,7 @@ export const useDictation = create<DictationState>((set, get) => {
 
     async cancel() {
       clearTimeout(limitTimer);
+      stopLevelReports();
       await recorder.dispose();
       setPhase('idle', { level: 0, startedAt: null, message: null });
     },

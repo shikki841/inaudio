@@ -17,7 +17,11 @@ export const IPC = {
   modelsVerify: 'models:verify',
   modelsReveal: 'models:reveal',
   dictationTranscribe: 'dictation:transcribe',
-  dictationPhase: 'dictation:phase',
+  dictationState: 'dictation:state',
+  audioDevices: 'audio:devices',
+  overlayAction: 'overlay:action',
+  overlayHover: 'overlay:hover',
+  overlayMenu: 'overlay:menu',
   textInsert: 'text:insert',
   clipboardWrite: 'clipboard:write',
   clipboardRead: 'clipboard:read',
@@ -33,6 +37,7 @@ export const EVENTS = {
   modelProgress: 'event:model-progress',
   statusChanged: 'event:status-changed',
   settingsChanged: 'event:settings-changed',
+  overlayState: 'event:overlay-state',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

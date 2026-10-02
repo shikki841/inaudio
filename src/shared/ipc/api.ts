@@ -4,8 +4,11 @@ import type { Settings, SettingsPatch } from '../domain/settings';
 import type {
   AppMenuCommand,
   AppCommand,
-  DictationPhase,
+  AudioDevice,
+  DictationState,
   ModelProgressEvent,
+  OverlayAction,
+  OverlayState,
   SystemStatus,
   WindowAction,
 } from '../domain/system';
@@ -52,7 +55,26 @@ export interface InaudioApi {
   };
   dictation: {
     transcribe(samples: Float32Array, options: { insert: boolean }): Promise<TranscribeResult>;
-    setPhase(phase: DictationPhase): void;
+    /** Reports capture state to the main process, which owns the authoritative phase. */
+    report(state: DictationState): void;
+  };
+  audio: {
+    /**
+     * Reports the devices this window can currently see. Only the main process can show
+     * them in a native menu, and it treats the list as the allowed set of input ids.
+     */
+    report(devices: AudioDevice[]): void;
+  };
+  overlay: {
+    /** Asks the main process to run one of a fixed set of overlay commands. */
+    act(action: OverlayAction): Promise<void>;
+    /** Tells the main process the pointer entered or left the overlay. */
+    hover(hovering: boolean): void;
+    /**
+     * Tells the main process a popover or dropdown opened or closed, so it can grant the
+     * window the room the menu needs. The overlay does not resize itself.
+     */
+    menu(open: boolean): void;
   };
   text: {
     insert(text: string): Promise<void>;
@@ -72,5 +94,6 @@ export interface InaudioApi {
     onModelProgress(listener: (event: ModelProgressEvent) => void): Unsubscribe;
     onStatusChanged(listener: () => void): Unsubscribe;
     onSettingsChanged(listener: (settings: Settings) => void): Unsubscribe;
+    onOverlayState(listener: (state: OverlayState) => void): Unsubscribe;
   };
 }
