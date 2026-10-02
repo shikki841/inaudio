@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { DatabaseSync, type SQLInputValue, type StatementSync } from 'node:sqlite';
 import {
   historyQuerySchema,
@@ -55,7 +56,9 @@ function toTranscript(row: Record<string, unknown>): Transcript {
 }
 
 export class HistoryRepository {
-  private readonly db: DatabaseSync;
+  private readonly db: DatabaseSync | null;
+  private readonly jsonFile: string;
+  private jsonItems: Transcript[];
   private closed = false;
   private readonly stmts: {
     insert: StatementSync;
@@ -65,9 +68,19 @@ export class HistoryRepository {
     count: StatementSync;
     search: StatementSync;
     searchCount: StatementSync;
-  };
+  } | null;
 
   constructor(file: string) {
+    this.jsonFile = `${file}.json`;
+    this.jsonItems = this.readJson();
+    // Electron versions can expose node:sqlite without a usable DatabaseSync.
+    // Keep history available without preventing the rest of the app from starting.
+    if (typeof DatabaseSync !== 'function') {
+      this.db = null;
+      this.stmts = null;
+      return;
+    }
+
     this.db = new DatabaseSync(file);
     this.db.exec(`
       PRAGMA journal_mode = WAL;
@@ -98,6 +111,11 @@ export class HistoryRepository {
   add(transcript: Transcript): void {
     this.assertOpen();
     const t = transcriptSchema.parse(transcript);
+    if (!this.db || !this.stmts) {
+      this.jsonItems.push(t);
+      this.writeJson();
+      return;
+    }
     this.stmts.insert.run({
       id: t.id,
       text: t.text,
@@ -112,6 +130,16 @@ export class HistoryRepository {
   list(query: HistoryQuery): HistoryPage {
     this.assertOpen();
     const { search, limit, offset } = historyQuerySchema.parse(query);
+    if (!this.db || !this.stmts) {
+      const normalized = search.trim().toLocaleLowerCase();
+      const filtered = normalized
+        ? this.jsonItems.filter((item) => item.text.toLocaleLowerCase().includes(normalized))
+        : this.jsonItems;
+      const items = [...filtered]
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(offset, offset + limit);
+      return { items, total: filtered.length };
+    }
     const fts = toFtsQuery(search);
     if (!fts) {
       return {
@@ -127,25 +155,40 @@ export class HistoryRepository {
 
   remove(id: string): void {
     this.assertOpen();
+    if (!this.db || !this.stmts) {
+      const next = this.jsonItems.filter((item) => item.id !== id);
+      if (next.length !== this.jsonItems.length) {
+        this.jsonItems = next;
+        this.writeJson();
+      }
+      return;
+    }
     this.stmts.remove.run(id);
   }
 
   clear(): void {
     this.assertOpen();
+    if (!this.db || !this.stmts) {
+      this.jsonItems = [];
+      this.writeJson();
+      return;
+    }
+    const { db, stmts } = this;
     this.transaction(() => {
-      this.stmts.clear.run();
-      this.db.exec("INSERT INTO transcripts_fts(transcripts_fts) VALUES ('rebuild')");
+      stmts.clear.run();
+      db.exec("INSERT INTO transcripts_fts(transcripts_fts) VALUES ('rebuild')");
     });
-    this.db.exec('VACUUM');
+    db.exec('VACUUM');
   }
 
   close(): void {
     if (this.closed) return;
-    this.db.close();
+    this.db?.close();
     this.closed = true;
   }
 
   private migrate(): void {
+    if (!this.db) return;
     const row = this.db.prepare('PRAGMA user_version').get() as
       { user_version?: unknown } | undefined;
     const version = row?.user_version;
@@ -159,13 +202,15 @@ export class HistoryRepository {
     }
     const pending = MIGRATIONS.slice(version);
     if (pending.length === 0) return;
+    const db = this.db;
     this.transaction(() => {
-      pending.forEach((sql) => this.db.exec(sql));
-      this.db.exec(`PRAGMA user_version = ${MIGRATIONS.length}`);
+      pending.forEach((sql) => db.exec(sql));
+      db.exec(`PRAGMA user_version = ${MIGRATIONS.length}`);
     });
   }
 
   private transaction(fn: () => void): void {
+    if (!this.db) return;
     this.db.exec('BEGIN IMMEDIATE');
     try {
       fn();
@@ -190,5 +235,24 @@ export class HistoryRepository {
 
   private assertOpen(): void {
     if (this.closed) throw new Error('History database is closed');
+  }
+
+  private readJson(): Transcript[] {
+    try {
+      const raw = JSON.parse(fs.readFileSync(this.jsonFile, 'utf8')) as unknown;
+      if (!Array.isArray(raw)) return [];
+      return raw.flatMap((item) => {
+        const parsed = transcriptSchema.safeParse(item);
+        return parsed.success ? [parsed.data] : [];
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  private writeJson(): void {
+    const temporary = `${this.jsonFile}.${process.pid}.tmp`;
+    fs.writeFileSync(temporary, JSON.stringify(this.jsonItems), { mode: 0o600 });
+    fs.renameSync(temporary, this.jsonFile);
   }
 }
