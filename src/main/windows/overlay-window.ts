@@ -12,6 +12,16 @@ export const OVERLAY_PILL_HEIGHT = 44;
 export const OVERLAY_MENU_SPACE = 248;
 /** Distance from the edge of the work area. */
 export const OVERLAY_MARGIN = 24;
+/**
+ * Extra width granted while an error line is shown. A configuration small enough to fit
+ * "Ready" has no room for a sentence, and a truncated failure reason is no use at all.
+ */
+export const OVERLAY_MESSAGE_SPACE = 184;
+/**
+ * Extra width granted while the pointer has armed the pill. The controls take more room
+ * than the readout they stand in for, and the smallest configuration has none to spare.
+ */
+export const OVERLAY_CONTROLS_SPACE = 96;
 
 /**
  * Pill width for a given configuration. The main process owns every pixel of overlay
@@ -26,13 +36,27 @@ export function overlayPillWidth(overlay: Settings['overlay']): number {
   return width;
 }
 
+/** What the pill currently needs room for, beyond the configured sections. */
+export interface OverlayExtent {
+  /** A dropdown or popover is open and the panel has to fit inside the window. */
+  menuOpen: boolean;
+  /** An error line is shown and has to be readable rather than clipped. */
+  message: boolean;
+  /** The pointer has armed the pill, so it is showing controls instead of a readout. */
+  controls: boolean;
+}
+
 export function overlaySize(
   overlay: Settings['overlay'],
-  menuOpen: boolean,
+  extent: OverlayExtent,
 ): { width: number; height: number } {
   return {
-    width: overlayPillWidth(overlay) + OVERLAY_PAD * 2,
-    height: OVERLAY_PILL_HEIGHT + OVERLAY_PAD * 2 + (menuOpen ? OVERLAY_MENU_SPACE : 0),
+    width:
+      overlayPillWidth(overlay) +
+      OVERLAY_PAD * 2 +
+      (extent.message ? OVERLAY_MESSAGE_SPACE : 0) +
+      (extent.controls ? OVERLAY_CONTROLS_SPACE : 0),
+    height: OVERLAY_PILL_HEIGHT + OVERLAY_PAD * 2 + (extent.menuOpen ? OVERLAY_MENU_SPACE : 0),
   };
 }
 
@@ -42,7 +66,11 @@ export function overlaySize(
  */
 export function createOverlayWindow(overlay: Settings['overlay']): BrowserWindow {
   const support = overlaySupport();
-  const { width, height } = overlaySize(overlay, false);
+  const { width, height } = overlaySize(overlay, {
+    menuOpen: false,
+    message: false,
+    controls: false,
+  });
 
   const win = new BrowserWindow({
     width,

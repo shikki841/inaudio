@@ -1,4 +1,4 @@
-import { BrowserWindow, nativeTheme, screen, type Display } from 'electron';
+import { BrowserWindow, screen, type Display } from 'electron';
 import { MODEL_CATALOG, type ModelId } from '@shared/domain/models';
 import type { Settings } from '@shared/domain/settings';
 import type { AudioDevice, DictationState, OverlayState } from '@shared/domain/system';
@@ -75,6 +75,8 @@ export class OverlayController {
   setHover(hovering: boolean): void {
     if (this.hover === hovering) return;
     this.hover = hovering;
+    // Arming swaps the readout for controls, which need more width than they replace.
+    this.place();
     this.applyMouse();
     this.push();
   }
@@ -161,11 +163,24 @@ export class OverlayController {
     return this.hover && overlaySupport().hover;
   }
 
+  /**
+   * Whether the pill is showing its controls. Click-through being off makes the pill
+   * permanently interactive, but it does not make it permanently open: that takes the
+   * pointer, or a menu the pointer opened.
+   */
+  private armed(): boolean {
+    return this.menu || this.hover;
+  }
+
   private place(): void {
     const win = this.win;
     if (!win || win.isDestroyed()) return;
     const { overlay } = this.options.settings();
-    const { width, height } = overlaySize(overlay, this.menu);
+    const { width, height } = overlaySize(overlay, {
+      menuOpen: this.menu,
+      message: this.dictation.phase === 'error' && this.dictation.message !== '',
+      controls: this.armed(),
+    });
     const area = this.display().workArea;
     const anchorTop = overlay.position.startsWith('top');
 
@@ -218,6 +233,11 @@ export class OverlayController {
       model: descriptor.name,
       language: descriptor.languages.length > 1 ? 'Auto' : '',
       interactive: this.interactive(),
+      armed: this.armed(),
+      // `place()` pins this edge and grows the window on the free side, so the renderer
+      // aligns the pill here and opens its panels into the room it was given.
+      anchor: overlay.position.startsWith('top') ? 'top' : 'bottom',
+      accentTone: appearance.accentTone,
       // The window was sized from these same four flags, so the renderer draws a section
       // exactly when the box has room for it. It never decides its own extent.
       showTimer: overlay.showTimer,
@@ -226,6 +246,9 @@ export class OverlayController {
       showLanguage: overlay.showLanguage,
       devices: this.options.devices(),
       models: this.options.models(),
+      // The pickers mark the active entry, and these are the only ids they may send back.
+      deviceId: settings.audio.inputDeviceId,
+      modelId: settings.stt.modelId,
       animate: appearance.animations === 'full',
     };
   }

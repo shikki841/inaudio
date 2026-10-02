@@ -8,19 +8,22 @@ export function Segmented<T extends string>({
   onValueChange,
   options,
   label,
+  disabled,
 }: {
   value: T;
   onValueChange(value: T): void;
   options: { value: T; label: ReactNode }[];
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <ToggleGroup.Root
       type="single"
       aria-label={label}
       value={value}
+      disabled={disabled}
       onValueChange={(v) => v && onValueChange(v as T)}
-      className="inline-flex rounded-[6px] bg-sunken p-0.5"
+      className={cn('inline-flex rounded-[6px] bg-sunken p-0.5', disabled && 'opacity-50')}
     >
       {options.map((option) => (
         <ToggleGroup.Item

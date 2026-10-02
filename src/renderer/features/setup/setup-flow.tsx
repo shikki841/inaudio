@@ -7,12 +7,14 @@ import { Recorder } from '@renderer/features/dictation/audio/recorder';
 import { LevelMeter } from '@renderer/features/dictation/level-meter';
 import { ModelRow } from '@renderer/features/models/model-row';
 import { useModelStatuses } from '@renderer/features/models/use-model-statuses';
+import { OverlaySettings } from '@renderer/features/settings/overlay-settings';
 import { errorMessage } from '@renderer/lib/api';
 import { cn } from '@renderer/lib/cn';
 import { formatAccelerator } from '@renderer/lib/format';
 import { useSettings, useSystemStatus, useUpdateSettings } from '@renderer/lib/queries';
 
-const STEPS = ['Welcome', 'Microphone', 'Models', 'Shortcut'] as const;
+const STEPS = ['Welcome', 'Microphone', 'Models', 'Shortcut', 'Overlay'] as const;
+const OVERLAY_STEP = STEPS.indexOf('Overlay');
 
 function MicrophoneStep() {
   const [level, setLevel] = useState(0);
@@ -99,6 +101,32 @@ function ShortcutStep() {
   );
 }
 
+function OverlayStep() {
+  const { data: settings } = useSettings();
+  const { data: status } = useSystemStatus();
+  const update = useUpdateSettings();
+  if (!settings || !status) return null;
+  return (
+    <div className="grid gap-6">
+      <p className="text-muted">
+        A small pill sits at the edge of the screen while you dictate, showing whether Inaudio is
+        listening and offering the controls you reach for. You can change any of this later in
+        Settings.
+      </p>
+      <div className="divide-y divide-line">
+        <OverlaySettings
+          compact
+          overlay={settings.overlay}
+          support={status.overlay}
+          platform={status.platform}
+          shortcut={status.shortcuts.overlay}
+          onChange={(patch) => update.mutate({ overlay: patch })}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function SetupFlow() {
   const [step, setStep] = useState(0);
   const update = useUpdateSettings();
@@ -137,6 +165,7 @@ export function SetupFlow() {
               {step === 1 && <MicrophoneStep />}
               {step === 2 && <ModelsStep />}
               {step === 3 && <ShortcutStep />}
+              {step === OVERLAY_STEP && <OverlayStep />}
             </div>
           )}
 

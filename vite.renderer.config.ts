@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -11,6 +12,7 @@ function contentSecurityPolicy(): Plugin {
     configResolved(config) {
       isDev = config.command === 'serve';
     },
+    // Runs once per HTML entry, so both pages get the policy.
     transformIndexHtml(html) {
       return html.replace('%INAUDIO_CSP%', buildContentSecurityPolicy({ dev: isDev }));
     },
@@ -24,5 +26,14 @@ export default defineConfig({
   build: {
     sourcemap: false,
     assetsInlineLimit: 0,
+    rollupOptions: {
+      // Two pages in one renderer bundle: the app window and the floating overlay. The
+      // overlay is loaded by the main process as `overlay.html` under the app origin.
+      input: {
+        index: fileURLToPath(new URL('index.html', import.meta.url)),
+        overlay: fileURLToPath(new URL('overlay.html', import.meta.url)),
+      },
+    },
   },
 });
+

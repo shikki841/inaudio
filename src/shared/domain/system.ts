@@ -1,4 +1,5 @@
 import type { ModelStatus } from './models';
+import type { AccentTone } from './settings';
 
 export type PermissionState = 'granted' | 'denied' | 'restricted' | 'not-determined' | 'unknown';
 
@@ -98,6 +99,18 @@ export interface OverlayState extends DictationState {
   language: string;
   /** True while the window accepts mouse events, so controls are usable. */
   interactive: boolean;
+  /**
+   * True once the pointer or an open menu has armed the pill. The window was widened for
+   * the controls, so the renderer shows them exactly when it has been given the room.
+   */
+  armed: boolean;
+  /**
+   * The edge the window is pinned to. Room for a menu is added on the free side, so the
+   * pill sits against this edge and panels open away from it.
+   */
+  anchor: 'top' | 'bottom';
+  /** The app's accent tone, so the overlay matches it without reading settings itself. */
+  accentTone: AccentTone;
   showTimer: boolean;
   showLevel: boolean;
   showModel: boolean;
@@ -106,6 +119,10 @@ export interface OverlayState extends DictationState {
   devices: AudioDevice[];
   /** Installed recognition models. Selecting one is validated against this same list. */
   models: OverlayModel[];
+  /** The active input device id, so the picker can mark it. */
+  deviceId: string;
+  /** The active recognition model id, so the picker can mark it. */
+  modelId: string;
   /** False when the user has turned animations down, so the pill holds still. */
   animate: boolean;
 }

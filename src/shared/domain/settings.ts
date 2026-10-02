@@ -108,6 +108,11 @@ export type OverlayDisplayMode = z.infer<typeof overlayDisplaySchema>;
 
 export const OVERLAY_MIN_OPACITY = 0.4;
 
+/** Accent tones the stylesheet defines, in the order they are offered. */
+export const ACCENT_TONES = ['blue', 'violet', 'green', 'amber', 'rose'] as const;
+export const accentToneSchema = z.enum(ACCENT_TONES);
+export type AccentTone = z.infer<typeof accentToneSchema>;
+
 /** Device ids Chromium reports whatever hardware is attached, so they are always valid. */
 export const RESERVED_DEVICE_IDS = ['default', 'communications'] as const;
 
@@ -131,7 +136,7 @@ export const settingsSchema = z.object({
     fontFamily: z.enum(['inter', 'system']),
     animations: z.enum(['full', 'reduced', 'off']),
     contentWidth: z.enum(['compact', 'default', 'wide']),
-    accentTone: z.enum(['blue', 'violet', 'green', 'amber', 'rose']),
+    accentTone: accentToneSchema,
   }),
   dictation: z.object({
     mode: z.enum(['toggle', 'push-to-talk']),

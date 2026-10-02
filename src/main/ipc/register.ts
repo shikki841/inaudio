@@ -163,7 +163,6 @@ export function registerIpc(services: Services): void {
     }
     // open-app and open-audio both need the real window, which the overlay does not own.
     const win = services.window();
-    if (command === 'open-audio') settings.update({ overlay: { enabled: false } });
     if (!win || win.isDestroyed()) return;
     win.show();
     win.focus();

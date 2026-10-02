@@ -8,7 +8,7 @@ import {
   type ModelStatus,
 } from '@shared/domain/models';
 import type { AudioDevice, AppCommand, SystemStatus } from '@shared/domain/system';
-import { RESERVED_DEVICE_IDS, type SettingsPatch } from '@shared/domain/settings';
+import { RESERVED_DEVICE_IDS, type Settings, type SettingsPatch } from '@shared/domain/settings';
 import { MAX_TRANSCRIPT_CHARS } from '@shared/domain/history';
 import type { AppPaths } from '../app/paths';
 import { DictationController } from './dictation-controller';

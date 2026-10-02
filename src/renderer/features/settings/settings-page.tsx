@@ -9,9 +9,14 @@ import { Switch } from '@renderer/components/ui/switch';
 import { api } from '@renderer/lib/api';
 import { useSettings, useSystemStatus, useUpdateSettings } from '@renderer/lib/queries';
 import type { Settings } from '@shared/domain/settings';
+import type { ShortcutStatus } from '@shared/domain/system';
+import { OverlaySettings } from './overlay-settings';
 import { ShortcutInput } from './shortcut-input';
+import { TraySettings } from './tray-settings';
 
 const THREADS = [1, 2, 4, 6, 8, 12, 16];
+/** Idle delays offered before the engine unloads. The schema allows 1–60 minutes. */
+const IDLE_MINUTES = [1, 2, 5, 10, 20, 30, 60];
 const ACCENT_COLORS = {
   blue: '#2f5bea',
   violet: '#6148d8',
@@ -27,12 +32,33 @@ const SEARCH_ITEMS = [
   { id: 'settings-animations', label: 'Animations', section: 'Appearance', keywords: 'motion reduced off' },
   { id: 'settings-content-width', label: 'Display width', section: 'Appearance', keywords: 'compact default wide layout' },
   { id: 'settings-accent', label: 'Accent color', section: 'Appearance', keywords: 'blue violet green amber rose color' },
-  { id: 'settings-dictation', label: 'Dictation', section: 'Dictation', keywords: 'shortcut recording transcript clipboard history' },
-  { id: 'settings-read-aloud', label: 'Read aloud', section: 'Read aloud', keywords: 'shortcut speech' },
-  { id: 'settings-performance', label: 'Performance', section: 'Performance', keywords: 'cpu threads power battery' },
-  { id: 'settings-app', label: 'App', section: 'App', keywords: 'login tray setup' },
+  { id: 'settings-dictation', label: 'Dictation', section: 'Dictation', keywords: 'recording transcript clipboard history' },
+  { id: 'settings-overlay', label: 'Recording overlay', section: 'Overlay', keywords: 'pill floating window show hide' },
+  { id: 'settings-overlay-visibility', label: 'When to show the overlay', section: 'Overlay', keywords: 'always while active hide idle' },
+  { id: 'settings-overlay-placement', label: 'Overlay placement', section: 'Overlay', keywords: 'position corner top bottom left right screen' },
+  { id: 'settings-overlay-display', label: 'Overlay display', section: 'Overlay', keywords: 'monitor screen cursor pointer primary follow' },
+  { id: 'settings-overlay-opacity', label: 'Overlay opacity', section: 'Overlay', keywords: 'transparent fade solid' },
+  { id: 'settings-overlay-click-through', label: 'Click through', section: 'Overlay', keywords: 'mouse clicks idle ignore' },
+  { id: 'settings-overlay-sections', label: 'Overlay contents', section: 'Overlay', keywords: 'timer level model language meter elapsed' },
+  { id: 'settings-tray', label: 'Tray icon', section: 'Tray', keywords: 'menu icon status notification' },
+  { id: 'settings-tray-left-click', label: 'Tray left click', section: 'Tray', keywords: 'window dictate' },
+  { id: 'settings-tray-microphones', label: 'Tray microphones', section: 'Tray', keywords: 'input device menu' },
+  { id: 'settings-tray-notifications', label: 'Tray notifications', section: 'Tray', keywords: 'system notify alert' },
+  { id: 'settings-shortcuts', label: 'Shortcuts', section: 'Shortcuts', keywords: 'keyboard keys accelerator hotkey' },
+  { id: 'settings-shortcut-cancel', label: 'Cancel recording shortcut', section: 'Shortcuts', keywords: 'escape abort discard' },
+  { id: 'settings-shortcut-overlay', label: 'Overlay shortcut', section: 'Shortcuts', keywords: 'show hide pill' },
+  { id: 'settings-performance', label: 'Performance', section: 'Performance', keywords: 'cpu threads power battery memory unload' },
+  { id: 'settings-unload', label: 'Unload models when idle', section: 'Performance', keywords: 'memory ram free idle minutes' },
+  { id: 'settings-app', label: 'App', section: 'App', keywords: 'login tray setup close quit' },
   { id: 'settings-about', label: 'About', section: 'About', keywords: 'version engine data folder models' },
 ] as const;
+
+/** Three words for the three ways a configured accelerator can land. */
+const SHORTCUT_NOTE: Record<ShortcutStatus, string | null> = {
+  registered: null,
+  unavailable: 'In use by another app',
+  off: null,
+};
 
 function ThemePreview({ theme }: { theme: 'system' | 'light' | 'dark' }) {
   const dark = theme === 'dark';
@@ -101,17 +127,11 @@ export function SettingsPage() {
         )}
       </div>
 
+      {/* Sections are laid out in the order they are written. Appearance is written last on
+          purpose — it is the longest section, and keeping it out of the way leaves the
+          settings people change most often at the top of the scroll. */}
       <div className="flex flex-col">
-      <Section id="settings-dictation" title="Dictation" className="order-2">
-        <Row label="Shortcut" description="Works from any app while Inaudio is running.">
-          <ShortcutInput
-            label="Dictation shortcut"
-            value={dictation.shortcut}
-            platform={status.platform}
-            registered={status.shortcuts.dictation}
-            onChange={(shortcut) => update.mutate({ dictation: { shortcut } })}
-          />
-        </Row>
+      <Section id="settings-dictation" title="Dictation">
         <Row
           label="Recording mode"
           description="Push to talk records while the shortcut is held; it only works while Inaudio is focused. From other apps the shortcut toggles."
@@ -144,6 +164,13 @@ export function SettingsPage() {
             ]}
           />
         </div>
+        <Row label="Play sound cues" description="A short tone when recording starts and stops.">
+          <Switch
+            aria-label="Play sound cues"
+            checked={dictation.playCues}
+            onCheckedChange={(playCues) => update.mutate({ dictation: { playCues } })}
+          />
+        </Row>
         <Row label="Restore clipboard" description="Put back what was on the clipboard after typing.">
           <Switch
             aria-label="Restore clipboard"
@@ -161,19 +188,66 @@ export function SettingsPage() {
         </Row>
       </Section>
 
-      <Section id="settings-read-aloud" title="Read aloud" className="order-3">
-        <Row label="Read clipboard shortcut">
+      <Section id="settings-overlay" title="Recording overlay" description="The floating pill that shows what dictation is doing." className="order-3">
+        <OverlaySettings
+          overlay={settings.overlay}
+          support={status.overlay}
+          platform={status.platform}
+          shortcut={status.shortcuts.overlay}
+          onChange={(patch) => update.mutate({ overlay: patch })}
+        />
+      </Section>
+
+      <Section id="settings-tray" title="Tray" description="The menu bar icon and what it offers." className="order-4">
+        <TraySettings
+          tray={settings.tray}
+          status={status}
+          onChange={(patch) => update.mutate({ tray: patch })}
+        />
+      </Section>
+
+      <Section id="settings-shortcuts" title="Shortcuts" description="Accelerators work from any app while Inaudio is running." className="order-5">
+        <Row label="Dictation" description={SHORTCUT_NOTE[status.shortcuts.dictation] ?? undefined}>
+          <ShortcutInput
+            label="Dictation shortcut"
+            value={dictation.shortcut}
+            platform={status.platform}
+            status={status.shortcuts.dictation}
+            onChange={(shortcut) => update.mutate({ dictation: { shortcut } })}
+          />
+        </Row>
+        <Row label="Read clipboard" description={SHORTCUT_NOTE[status.shortcuts.readAloud] ?? undefined}>
           <ShortcutInput
             label="Read aloud shortcut"
             value={settings.tts.shortcut}
             platform={status.platform}
-            registered={status.shortcuts.readAloud}
+            status={status.shortcuts.readAloud}
             onChange={(shortcut) => update.mutate({ tts: { shortcut } })}
+          />
+        </Row>
+        <Row id="settings-shortcut-cancel" label="Cancel recording" description="Discards the recording in progress without transcribing it.">
+          <ShortcutInput
+            label="Cancel shortcut"
+            optional
+            value={dictation.cancelShortcut}
+            platform={status.platform}
+            status={status.shortcuts.cancel}
+            onChange={(cancelShortcut) => update.mutate({ dictation: { cancelShortcut } })}
+          />
+        </Row>
+        <Row id="settings-shortcut-overlay" label="Show or hide the overlay" description="Turns the pill on and off without opening Settings.">
+          <ShortcutInput
+            label="Overlay shortcut"
+            optional
+            value={settings.overlay.toggleShortcut}
+            platform={status.platform}
+            status={status.shortcuts.overlay}
+            onChange={(toggleShortcut) => update.mutate({ overlay: { toggleShortcut } })}
           />
         </Row>
       </Section>
 
-      <Section id="settings-performance" title="Performance" className="order-4">
+      <Section id="settings-performance" title="Performance" className="order-6">
         <Row label="CPU threads" description={`Threads used by the speech engine. This computer has ${cpu}.`}>
           <Select
             label="CPU threads"
@@ -188,9 +262,33 @@ export function SettingsPage() {
             <Badge tone="warning">On battery</Badge>
           </Row>
         )}
+        <Row
+          id="settings-unload"
+          label="Unload models when idle"
+          description="Frees memory between sessions. The next recording takes a moment longer to start."
+        >
+          <Switch
+            aria-label="Unload models when idle"
+            checked={settings.system.autoUnload}
+            onCheckedChange={(autoUnload) => update.mutate({ system: { autoUnload } })}
+          />
+        </Row>
+        <Row label="Idle after" description="How long to wait before unloading.">
+          <Select
+            label="Idle minutes"
+            className="min-w-28"
+            value={String(settings.system.idleMinutes)}
+            disabled={!settings.system.autoUnload}
+            onValueChange={(v) => update.mutate({ system: { idleMinutes: Number(v) } })}
+            options={IDLE_MINUTES.map((n) => ({
+              value: String(n),
+              label: n === 1 ? '1 minute' : `${n} minutes`,
+            }))}
+          />
+        </Row>
       </Section>
 
-      <Section id="settings-appearance" title="Appearance" className="order-first pt-0">
+      <Section id="settings-appearance" title="Appearance" className="pt-0">
         <div id="settings-theme" className="grid gap-3 py-3">
           <p className="text-sm font-medium">Theme mode</p>
           <div role="radiogroup" aria-label="Theme mode" className="grid gap-2 md:grid-cols-3">
@@ -278,7 +376,7 @@ export function SettingsPage() {
         </Row>
       </Section>
 
-      <Section id="settings-app" title="App" className="order-5">
+      <Section id="settings-app" title="App">
         {status.platform !== 'linux' && (
           <Row label="Open at login">
             <Switch
@@ -302,7 +400,7 @@ export function SettingsPage() {
         </Row>
       </Section>
 
-      <Section id="settings-about" title="About" className="order-6">
+      <Section id="settings-about" title="About">
         <Row label="Data folder" description={<span data-selectable>{status.dataDir}</span>}>
           <Button size="sm" variant="ghost" onClick={() => void api.system.revealModels()}>
             <FolderOpen /> Models
