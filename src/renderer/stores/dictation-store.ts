@@ -87,7 +87,7 @@ export const useDictation = create<DictationState>((set, get) => {
           gain: current?.audio.inputGain ?? 1,
           onLevel: (level) => set({ level }),
         });
-        if (current?.dictation.playCues) playCue('start');
+        if (current?.dictation.playCues) void playCue('start', { volume: current.dictation.cueVolume, outputDeviceId: current.audio.outputDeviceId });
         setPhase('listening', { startedAt: Date.now(), message: null, level: 0 });
         startLevelReports();
         limitTimer = setTimeout(() => void get().stop(), MAX_RECORDING_MS);
@@ -111,7 +111,7 @@ export const useDictation = create<DictationState>((set, get) => {
       stopLevelReports();
       const current = settings();
       const raw = await recorder.stop();
-      if (current?.dictation.playCues) playCue('stop');
+      if (current?.dictation.playCues) void playCue('stop', { volume: current.dictation.cueVolume, outputDeviceId: current.audio.outputDeviceId });
       const samples = trimSilence(raw);
       if ((samples.length / TARGET_RATE) * 1000 < MIN_SPEECH_MS) {
         setPhase('idle', { level: 0, startedAt: null, message: 'No speech detected.' });
@@ -128,7 +128,7 @@ export const useDictation = create<DictationState>((set, get) => {
             : null;
         setPhase('idle', { last: result.transcript, lastText: result.text, message });
       } catch (error) {
-        if (current?.dictation.playCues) playCue('error');
+        if (current?.dictation.playCues) void playCue('error', { volume: current.dictation.cueVolume, outputDeviceId: current.audio.outputDeviceId });
         setPhase('error', { message: errorMessage(error) });
       }
     },
