@@ -26,6 +26,8 @@
 
 Download a model once, then run inference locally. Model downloads need an internet connection. Desktop packages target Windows, macOS, and Linux; permissions and text insertion vary by platform. Current automated builds are unsigned.
 
+Speech-to-text includes NVIDIA Nemotron ASR Streaming, an English cache-aware streaming model with a 560 ms latency/accuracy profile. It runs through sherpa-onnx on the CPU after its verified model archive is downloaded; the model remains subject to the [NVIDIA Open Model License](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/).
+
 ## Run locally
 
 Use Node.js 24 LTS and npm. Native packaging prerequisites are in [CONTRIBUTING.md](CONTRIBUTING.md).

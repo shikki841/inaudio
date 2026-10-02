@@ -11,6 +11,7 @@ export interface SherpaModule {
   OfflineTts: {
     createAsync(config: unknown): Promise<SherpaTts>;
   };
+  OnlineRecognizer: new (config: unknown) => SherpaOnlineRecognizer;
 }
 
 export interface SherpaStream {
@@ -22,10 +23,27 @@ export interface SherpaRecognizer {
   decodeAsync(stream: SherpaStream): Promise<{ text: string; lang?: string }>;
 }
 
+export interface SherpaOnlineStream {
+  acceptWaveform(input: { samples: Float32Array; sampleRate: number }): void;
+  inputFinished(): void;
+}
+
+export interface SherpaOnlineRecognizer {
+  createStream(): SherpaOnlineStream;
+  isReady(stream: SherpaOnlineStream): boolean;
+  decode(stream: SherpaOnlineStream): void;
+  getResult(stream: SherpaOnlineStream): { text: string; lang?: string };
+}
+
 export interface SherpaTts {
   numSpeakers: number;
   sampleRate: number;
-  generateAsync(input: { text: string; sid: number; speed: number; enableExternalBuffer?: boolean }): Promise<{
+  generateAsync(input: {
+    text: string;
+    sid: number;
+    speed: number;
+    enableExternalBuffer?: boolean;
+  }): Promise<{
     samples: Float32Array;
     sampleRate: number;
   }>;

@@ -1,11 +1,26 @@
 import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
-import { MODEL_CATALOG, MODEL_IDS, modelBytes, type ModelHealth, type ModelId, type ModelLoadState, type ModelStatus } from '@shared/domain/models';
+import {
+  MODEL_CATALOG,
+  MODEL_IDS,
+  modelBytes,
+  type ModelHealth,
+  type ModelId,
+  type ModelLoadState,
+  type ModelStatus,
+} from '@shared/domain/models';
 import type { ModelProgressEvent } from '@shared/domain/system';
 import { resolveInside } from '../app/paths';
 import { downloadVerified } from './downloader';
-import { assertSafePath, extractVerifiedArchive, sameSnapshot, snapshot, verifyFiles, type IntegrityFile } from './model-integrity';
+import {
+  assertSafePath,
+  extractVerifiedArchive,
+  sameSnapshot,
+  snapshot,
+  verifyFiles,
+  type IntegrityFile,
+} from './model-integrity';
 import { KOKORO_ARCHIVE_SHA256, KOKORO_FILES } from './kokoro-integrity';
 
 interface ActiveDownload {
@@ -16,9 +31,11 @@ interface ActiveDownload {
 
 function inventory(id: ModelId): readonly IntegrityFile[] {
   return MODEL_CATALOG[id].artifacts.flatMap((artifact) => {
-    if (artifact.type === 'file') return [{ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 }];
-    if (artifact.sha256 !== KOKORO_ARCHIVE_SHA256) throw new Error('No trusted inventory for this archive');
-    return KOKORO_FILES;
+    if (artifact.type === 'file')
+      return [{ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 }];
+    if (artifact.files?.length) return artifact.files;
+    if (artifact.sha256 === KOKORO_ARCHIVE_SHA256) return KOKORO_FILES;
+    throw new Error('No trusted inventory for this archive');
   });
 }
 
@@ -35,7 +52,9 @@ export class ModelManager extends EventEmitter<{ progress: [ModelProgressEvent] 
     private readonly modelsRoot: string,
     private readonly downloadsRoot: string,
     private readonly isLoaded: (id: ModelId) => boolean,
-  ) { super(); }
+  ) {
+    super();
+  }
 
   directory(id: ModelId): string {
     return resolveInside(this.modelsRoot, MODEL_CATALOG[id].id);
@@ -46,7 +65,9 @@ export class ModelManager extends EventEmitter<{ progress: [ModelProgressEvent] 
     if (!cached) return false;
     try {
       if (sameSnapshot(cached, snapshot(this.directory(id), inventory(id)))) return true;
-    } catch { /* Any filesystem change invalidates the verified cache. */ }
+    } catch {
+      /* Any filesystem change invalidates the verified cache. */
+    }
     this.verified.delete(id);
     return false;
   }
@@ -58,7 +79,8 @@ export class ModelManager extends EventEmitter<{ progress: [ModelProgressEvent] 
     const installed = this.isInstalled(id);
     const loaded = installed && this.isLoaded(id);
     const error = this.errors.get(id);
-    const state: ModelStatus['state'] = active?.state ?? (installed ? 'installed' : error ? 'error' : 'missing');
+    const state: ModelStatus['state'] =
+      active?.state ?? (installed ? 'installed' : error ? 'error' : 'missing');
     let loadState: ModelLoadState = loaded ? 'loaded' : 'unloaded';
     let health: ModelHealth = installed ? 'healthy' : 'unavailable';
     if (active?.state === 'downloading' || active?.state === 'verifying') {
@@ -84,16 +106,21 @@ export class ModelManager extends EventEmitter<{ progress: [ModelProgressEvent] 
     };
   }
 
-  list(): ModelStatus[] { return MODEL_IDS.map((id) => this.status(id)); }
+  list(): ModelStatus[] {
+    return MODEL_IDS.map((id) => this.status(id));
+  }
 
   private enqueue(id: ModelId, operation: () => Promise<void>): Promise<void> {
     const next = (this.pending.get(id) ?? Promise.resolve()).catch(() => undefined).then(operation);
     this.pending.set(id, next);
-    void next.then(() => {
-      if (this.pending.get(id) === next) this.pending.delete(id);
-    }, () => {
-      if (this.pending.get(id) === next) this.pending.delete(id);
-    });
+    void next.then(
+      () => {
+        if (this.pending.get(id) === next) this.pending.delete(id);
+      },
+      () => {
+        if (this.pending.get(id) === next) this.pending.delete(id);
+      },
+    );
     return next;
   }
 
@@ -139,7 +166,9 @@ export class ModelManager extends EventEmitter<{ progress: [ModelProgressEvent] 
           this.errors.set(id, error instanceof Error ? error.message : String(error));
           throw error;
         }
-      } finally { this.finished(id, controller); }
+      } finally {
+        this.finished(id, controller);
+      }
     });
   }
 
@@ -149,11 +178,14 @@ export class ModelManager extends EventEmitter<{ progress: [ModelProgressEvent] 
     const controller = this.controller(id);
     const operation = this.enqueue(id, () => this.install(id, controller));
     this.downloads.set(id, operation);
-    void operation.then(() => {
-      if (this.downloads.get(id) === operation) this.downloads.delete(id);
-    }, () => {
-      if (this.downloads.get(id) === operation) this.downloads.delete(id);
-    });
+    void operation.then(
+      () => {
+        if (this.downloads.get(id) === operation) this.downloads.delete(id);
+      },
+      () => {
+        if (this.downloads.get(id) === operation) this.downloads.delete(id);
+      },
+    );
     return operation;
   }
 
@@ -185,17 +217,33 @@ export class ModelManager extends EventEmitter<{ progress: [ModelProgressEvent] 
       for (const [index, artifact] of MODEL_CATALOG[id].artifacts.entries()) {
         controller.signal.throwIfAborted();
         job.state = 'downloading';
-        const target = artifact.type === 'file' ? resolveInside(staging, artifact.path) : path.join(archiveRoot, `${index}.tar.bz2`);
+        const target =
+          artifact.type === 'file'
+            ? resolveInside(staging, artifact.path)
+            : path.join(archiveRoot, `${index}.tar.bz2`);
         await fs.promises.mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
         await downloadVerified({
-          url: artifact.url, destination: target, expectedBytes: artifact.bytes, expectedSha256: artifact.sha256,
+          url: artifact.url,
+          destination: target,
+          expectedBytes: artifact.bytes,
+          expectedSha256: artifact.sha256,
           signal: controller.signal,
-          onProgress: (bytes) => { job.bytesDone += bytes; report(); },
+          onProgress: (bytes) => {
+            job.bytesDone += bytes;
+            report();
+          },
         });
         if (artifact.type === 'archive') {
           job.state = 'verifying';
           report(true);
-          await extractVerifiedArchive(target, staging, artifact.stripPrefix, files, controller.signal);
+          await extractVerifiedArchive(
+            target,
+            staging,
+            artifact.stripPrefix,
+            files,
+            controller.signal,
+            artifact.unpackedBytes,
+          );
         }
       }
       job.state = 'verifying';
@@ -234,7 +282,9 @@ export class ModelManager extends EventEmitter<{ progress: [ModelProgressEvent] 
             await fs.promises.rm(directory, { recursive: true, force: true });
           }
         }
-      } finally { this.finished(id, controller); }
+      } finally {
+        this.finished(id, controller);
+      }
     }
   }
 
