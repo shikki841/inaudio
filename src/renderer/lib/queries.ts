@@ -20,7 +20,11 @@ export const keys = {
 };
 
 export function useSettings() {
-  return useQuery({ queryKey: keys.settings, queryFn: () => api.settings.get(), staleTime: Infinity });
+  return useQuery({
+    queryKey: keys.settings,
+    queryFn: () => withTimeout(api.settings.get(), 10_000, 'Settings request timed out'),
+    staleTime: Infinity,
+  });
 }
 
 export function useUpdateSettings() {
@@ -74,4 +78,20 @@ function deepMerge<T>(base: T, patch: unknown): T {
     out[key] = deepMerge(out[key], value);
   }
   return out as T;
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+    void promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }

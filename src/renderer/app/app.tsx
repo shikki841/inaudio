@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, type ComponentType } from 'react';
 import { AppShell } from '@renderer/components/shell/app-shell';
-import { api } from '@renderer/lib/api';
+import { api, errorMessage } from '@renderer/lib/api';
 import { keys, useSettings } from '@renderer/lib/queries';
 import { useDictation } from '@renderer/stores/dictation-store';
 import { useUi, type Route } from '@renderer/stores/ui-store';
@@ -97,7 +97,7 @@ function useAppearance() {
 }
 
 export function App() {
-  const { data: settings, isLoading } = useSettings();
+  const { data: settings, error, isError, isLoading, refetch } = useSettings();
   const route = useUi((s) => s.route);
   useMainEvents();
   useAppearance();
@@ -105,10 +105,33 @@ export function App() {
   useReportInputDevices();
   useHoldToTalk(settings?.dictation.mode === 'push-to-talk');
 
-  if (isLoading || !settings) {
+  if (isLoading || (!settings && !isError)) {
     return (
       <div className="grid h-full place-items-center bg-canvas text-accent">
         <LogoMark className="size-14 animate-pulse" />
+      </div>
+    );
+  }
+  if (isError || !settings) {
+    return (
+      <div className="grid h-full place-items-center bg-canvas px-6 text-center text-ink">
+        <div className="grid max-w-md justify-items-center gap-4">
+          <LogoMark className="size-14 text-accent" />
+          <h1 className="text-xl font-semibold">Inaudio could not start</h1>
+          <p className="text-sm text-muted">
+            The app could not read its settings from the main process.
+          </p>
+          <p className="max-w-full break-words rounded-md bg-sunken px-3 py-2 font-mono text-xs text-muted">
+            {errorMessage(error)}
+          </p>
+          <button
+            type="button"
+            className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-on-accent"
+            onClick={() => void refetch()}
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
