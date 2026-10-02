@@ -28,6 +28,7 @@ if (!app.requestSingleInstanceLock()) {
 function bootstrap(): void {
   let mainWindow: BrowserWindow | null = null;
   let services: Services | null = null;
+  let ipcReady = false;
   let quitting = false;
 
   const send = (channel: string, payload?: unknown) => {
@@ -45,6 +46,10 @@ function bootstrap(): void {
   };
 
   const showWindow = () => {
+    // Activation and second-instance events can arrive while app.whenReady is
+    // still initializing services. Do not load a renderer before its IPC
+    // handlers have been installed.
+    if (!services || !ipcReady) return;
     if (!mainWindow || mainWindow.isDestroyed()) {
       mainWindow = openWindow();
       return;
@@ -144,6 +149,7 @@ function bootstrap(): void {
     });
     const s = services;
     registerIpc(s);
+    ipcReady = true;
     void s.models.discover().catch((error: unknown) => console.error('Model discovery failed', error));
 
     const applyTheme = () => {
@@ -200,6 +206,7 @@ function bootstrap(): void {
   });
 
   app.on('activate', () => {
+    if (!services || !ipcReady) return;
     if (BrowserWindow.getAllWindows().length === 0) mainWindow = openWindow();
     else showWindow();
   });
