@@ -13,7 +13,7 @@ import { handle, handleOn, listen } from './handle';
 const none = z.undefined();
 
 export function registerIpc(services: Services): void {
-  const { settings, history, models, inference, inserter, paths } = services;
+  const { settings, history, models, inference, inserter, paths, companion } = services;
 
   handle(IPC.systemStatus, none, () => services.status());
   handle(IPC.systemOpenLink, schemas.openLink, (id) => openTrustedExternal(EXTERNAL_LINKS[id]));
@@ -185,10 +185,26 @@ export function registerIpc(services: Services): void {
 
   handle(IPC.ttsSpeak, schemas.speak, async ({ text, voiceId, speed }) => {
     const tts = settings.get().tts;
-    return services.runModel(tts.modelId, () => inference.speak(text, voiceSid(voiceId ?? tts.voiceId), speed ?? tts.speed));
+    companion.react('tts.started', 'speaking');
+    try {
+      return await services.runModel(tts.modelId, () =>
+        inference.speak(text, voiceSid(voiceId ?? tts.voiceId), speed ?? tts.speed),
+      );
+    } finally {
+      companion.react('tts.completed', 'ready');
+    }
   });
 
   handle(IPC.historyList, schemas.historyQuery, (query) => history.list(query));
   handle(IPC.historyRemove, schemas.historyId, (id) => history.remove(id));
   handle(IPC.historyClear, none, () => history.clear());
+  handle(IPC.companionList, none, () => companion.list());
+  handle(IPC.companionGet, none, () => companion.snapshot());
+  handle(IPC.companionSelect, schemas.companionId, (id) => companion.select(id));
+  handle(IPC.companionUpdate, schemas.companionSettings, (value) => companion.update(value));
+  handle(IPC.companionVisibility, schemas.companionVisibility, (visible) => {
+    if (visible) companion.show();
+    else companion.hide();
+    return companion.snapshot();
+  });
 }

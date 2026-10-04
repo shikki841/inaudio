@@ -29,6 +29,11 @@ export const IPC = {
   historyList: 'history:list',
   historyRemove: 'history:remove',
   historyClear: 'history:clear',
+  companionList: 'companion:list',
+  companionGet: 'companion:get',
+  companionSelect: 'companion:select',
+  companionUpdate: 'companion:update',
+  companionVisibility: 'companion:visibility',
 } as const;
 
 /** Main → renderer push events. */
@@ -38,6 +43,7 @@ export const EVENTS = {
   statusChanged: 'event:status-changed',
   settingsChanged: 'event:settings-changed',
   overlayState: 'event:overlay-state',
+  companionState: 'event:companion-state',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

@@ -14,6 +14,7 @@ const ROUTE_LABEL: Record<ReturnType<typeof useUi.getState>['route'], string> = 
   'read-aloud': 'Read Aloud',
   models: 'Models',
   audio: 'Audio',
+  companion: 'Companion',
   settings: 'Settings',
 };
 
@@ -37,6 +38,7 @@ const MENUS: {
       { label: 'Read Aloud', command: 'view.read-aloud' },
       { label: 'Models', command: 'view.models' },
       { label: 'Audio', command: 'view.audio' },
+      { label: 'Companion', command: 'view.companion' },
       { label: 'Settings', command: 'view.settings' },
     ],
   },

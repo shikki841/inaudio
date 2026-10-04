@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { modelIdSchema, voiceIdSchema } from '../domain/models';
 import { historyQuerySchema, MAX_TRANSCRIPT_CHARS } from '../domain/history';
 import { deviceIdSchema, settingsPatchSchema } from '../domain/settings';
+import { companionSettingsSchema } from '../domain/companion';
 import type { AppMenuCommand, WindowAction } from '../domain/system';
 
 /** 16 kHz mono float32 for at most 10 minutes. */
@@ -86,5 +87,9 @@ export const schemas = {
     'view.models',
     'view.audio',
     'view.settings',
+    'view.companion',
   ] as [AppMenuCommand, ...AppMenuCommand[]]),
+  companionId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/),
+  companionSettings: companionSettingsSchema,
+  companionVisibility: z.boolean(),
 };

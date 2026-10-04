@@ -60,12 +60,20 @@ const api: InaudioApi = {
     remove: (id) => ipcRenderer.invoke(IPC.historyRemove, id),
     clear: () => ipcRenderer.invoke(IPC.historyClear),
   },
+  companions: {
+    list: () => ipcRenderer.invoke(IPC.companionList),
+    get: () => ipcRenderer.invoke(IPC.companionGet),
+    select: (id) => ipcRenderer.invoke(IPC.companionSelect, id),
+    update: (settings) => ipcRenderer.invoke(IPC.companionUpdate, settings),
+    setVisibility: (visible) => ipcRenderer.invoke(IPC.companionVisibility, visible),
+  },
   events: {
     onCommand: (listener) => subscribe(EVENTS.command, listener),
     onModelProgress: (listener) => subscribe(EVENTS.modelProgress, listener),
     onStatusChanged: (listener) => subscribe(EVENTS.statusChanged, listener),
     onSettingsChanged: (listener) => subscribe(EVENTS.settingsChanged, listener),
     onOverlayState: (listener) => subscribe(EVENTS.overlayState, listener),
+    onCompanionState: (listener) => subscribe(EVENTS.companionState, listener),
   },
 };
 

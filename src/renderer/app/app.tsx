@@ -15,6 +15,7 @@ import { readClipboardAloud } from '@renderer/features/read-aloud/read-aloud-sto
 import { SettingsPage } from '@renderer/features/settings/settings-page';
 import { SetupFlow } from '@renderer/features/setup/setup-flow';
 import { LogoMark } from '@renderer/components/brand/logo';
+import { CompanionPage } from '@renderer/features/companion/companion-page';
 
 const PAGES: Record<Route, ComponentType> = {
   dictation: DictationPage,
@@ -22,6 +23,7 @@ const PAGES: Record<Route, ComponentType> = {
   'read-aloud': ReadAloudPage,
   models: ModelsPage,
   audio: AudioPage,
+  companion: CompanionPage,
   settings: SettingsPage,
 };
 

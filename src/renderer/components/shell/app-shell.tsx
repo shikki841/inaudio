@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar macInset={mac} />
       <div className="flex min-w-0 flex-1 flex-col">
         <StatusBar />
-        <main className="mr-3 min-h-0 flex-1 overflow-y-auto rounded-t-[18px] bg-surface shadow-[0_0_0_1px_var(--line)] [scrollbar-gutter:stable]">
+        <main className="app-scroll-area mr-3 min-h-0 flex-1 overflow-y-auto rounded-t-[6px] bg-surface shadow-[0_0_0_1px_var(--line)] [scrollbar-gutter:stable]">
           <div className={`mx-auto w-full ${maxWidth} px-9 pt-9 pb-9`}>{children}</div>
         </main>
       </div>

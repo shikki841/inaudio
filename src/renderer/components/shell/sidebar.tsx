@@ -1,5 +1,5 @@
 import * as NavigationMenu from '@radix-ui/react-navigation-menu';
-import { AudioLines, Boxes, History, Mic, PanelLeftClose, PanelLeftOpen, Settings2, Volume2 } from 'lucide-react';
+import { AudioLines, Boxes, History, Mic, PanelLeftClose, PanelLeftOpen, Settings2, Sparkles, Volume2 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { Wordmark } from '@renderer/components/brand/logo';
 import { IconButton } from '@renderer/components/ui/icon-button';
@@ -15,6 +15,7 @@ const NAV: { route: Route; label: string; icon: ComponentType<{ className?: stri
   { route: 'read-aloud', label: 'Read Aloud', icon: Volume2 },
   { route: 'models', label: 'Models', icon: Boxes },
   { route: 'audio', label: 'Audio', icon: AudioLines },
+  { route: 'companion', label: 'Companion', icon: Sparkles },
   { route: 'settings', label: 'Settings', icon: Settings2 },
 ];
 
