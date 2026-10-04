@@ -26,6 +26,9 @@ interface TrayActions {
   openSettings(): void;
   selectMicrophone(id: string): void;
   toggleOverlay(): void;
+  showCompanion(): void;
+  hideCompanion(): void;
+  toggleCompanionClickThrough(): void;
   quit(): void;
 }
 
@@ -137,7 +140,7 @@ export class TrayService {
   }
 
   private template(): MenuItemConstructorOptions[] {
-    const { dictation, tts, overlay } = this.settings;
+    const { dictation, tts, overlay, companion } = this.settings;
     const idle = this.phase === 'idle';
     const listening = this.phase === 'listening';
     const busy = this.phase === 'transcribing' || this.phase === 'inserting';
@@ -182,6 +185,18 @@ export class TrayService {
         accelerator: hint(overlay.toggleShortcut),
         registerAccelerator: false,
         click: this.actions.toggleOverlay,
+      },
+      {
+        label: 'Show companion',
+        type: 'checkbox',
+        checked: companion.visible,
+        click: () => (companion.visible ? this.actions.hideCompanion() : this.actions.showCompanion()),
+      },
+      {
+        label: 'Companion click-through',
+        type: 'checkbox',
+        checked: companion.clickThrough,
+        click: this.actions.toggleCompanionClickThrough,
       },
       { type: 'separator' },
       { label: 'Status', enabled: false },

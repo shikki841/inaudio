@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { sttModelIdSchema, ttsModelIdSchema, voiceIdSchema } from './models';
+import {
+  DEFAULT_COMPANION_SETTINGS,
+  companionSettingsSchema,
+} from './companion';
 
 /** Accelerator tokens Electron accepts, split into modifiers and keys. */
 const MODIFIER_TOKENS = [
@@ -190,6 +194,7 @@ export const settingsSchema = z.object({
     autoUnload: z.boolean(),
     idleMinutes: z.number().int().min(1).max(60),
   }),
+  companion: companionSettingsSchema,
 });
 
 export type Settings = z.infer<typeof settingsSchema>;
@@ -204,6 +209,7 @@ const GROUP_KEYS = [
   'overlay',
   'tray',
   'system',
+  'companion',
 ] as const;
 type GroupKey = (typeof GROUP_KEYS)[number];
 
@@ -258,6 +264,7 @@ export const DEFAULT_SETTINGS: Settings = {
     notifications: false,
   },
   system: { launchAtLogin: false, closeToTray: true, autoUnload: true, idleMinutes: 10 },
+  companion: DEFAULT_COMPANION_SETTINGS,
 };
 
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
@@ -274,6 +281,7 @@ export const settingsPatchSchema = z
     overlay: settingsSchema.shape.overlay.partial().strict().optional(),
     tray: settingsSchema.shape.tray.partial().strict().optional(),
     system: settingsSchema.shape.system.partial().strict().optional(),
+    companion: settingsSchema.shape.companion.partial().strict().optional(),
   })
   .strict();
 
@@ -291,6 +299,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
     overlay: { ...base.overlay, ...patch.overlay },
     tray: { ...base.tray, ...patch.tray },
     system: { ...base.system, ...patch.system },
+    companion: { ...base.companion, ...patch.companion },
   });
 }
 

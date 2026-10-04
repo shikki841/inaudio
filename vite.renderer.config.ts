@@ -32,8 +32,8 @@ export default defineConfig({
       input: {
         index: fileURLToPath(new URL('index.html', import.meta.url)),
         overlay: fileURLToPath(new URL('overlay.html', import.meta.url)),
+        companion: fileURLToPath(new URL('companion.html', import.meta.url)),
       },
     },
   },
 });
-

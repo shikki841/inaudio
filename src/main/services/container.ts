@@ -21,6 +21,7 @@ import type { ShortcutService } from './shortcuts';
 import { collectSystemStatus } from './system-status';
 import { TextInserter } from './text-insertion';
 import type { TrayService } from './tray';
+import { CompanionService } from './companion-service';
 
 export interface Services {
   paths: AppPaths;
@@ -31,6 +32,7 @@ export interface Services {
   inserter: TextInserter;
   shortcuts: ShortcutService;
   tray: TrayService;
+  companion: CompanionService;
   overlay: OverlayController;
   dictation: DictationController;
   /** Records the devices the capturing window can see, for the tray and the id allow-list. */
@@ -66,6 +68,7 @@ export function createServices(options: {
 }): Services {
   const { paths } = options;
   const settings = new SettingsStore(paths.settings);
+  const companion = new CompanionService(paths, settings);
   const inference = new InferenceHost();
   const models = new ModelManager(paths.models, paths.downloads, (id) => inference.isLoaded(id));
   const history = new HistoryRepository(paths.database);
@@ -111,7 +114,13 @@ export function createServices(options: {
     command: options.command,
     showWindow: options.showWindow,
     overlay,
-    onState: (state) => options.tray.setPhase(state.phase, state.startedAt),
+    onState: (state) => {
+      options.tray.setPhase(state.phase, state.startedAt);
+      if (state.phase === 'listening') companion.react('dictation.started', 'listening');
+      else if (state.phase === 'transcribing') companion.react('dictation.stopped', 'transcribing');
+      else if (state.phase === 'idle') companion.react('app.idle', 'idle');
+      else if (state.phase === 'error') companion.react('app.error', 'error');
+    },
   });
   type Lifecycle = Pick<ModelStatus, 'loadState' | 'health' | 'lastUsedAt' | 'error'>;
   const lifecycle = new Map<ModelId, Lifecycle>();
@@ -239,7 +248,7 @@ export function createServices(options: {
   });
 
   return {
-    paths, settings, history, models, inference, inserter,
+    paths, settings, history, models, inference, inserter, companion,
     shortcuts: options.shortcuts, tray: options.tray, window: options.window,
     overlay, dictation, reportDevices, updateSettings: applySettings,
     listDevices: () => reportedDevices,
@@ -309,6 +318,7 @@ export function createServices(options: {
       closing = true;
       clearTimeout(idleTimer);
       dictation.dispose();
+      companion.dispose();
       overlay.destroy();
       models.cancelAll();
       await inference.stop();

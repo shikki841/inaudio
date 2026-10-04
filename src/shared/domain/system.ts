@@ -155,7 +155,8 @@ export type AppMenuCommand =
   | 'view.read-aloud'
   | 'view.models'
   | 'view.audio'
-  | 'view.settings';
+  | 'view.settings'
+  | 'view.companion';
 
 export type AppCommand =
   | 'dictation:toggle'

@@ -13,6 +13,11 @@ import type {
   WindowAction,
 } from '../domain/system';
 import type { ExternalLinkId } from './schemas';
+import type {
+  CompanionPackage,
+  CompanionSnapshot,
+  CompanionSettings,
+} from '../domain/companion';
 
 export interface TranscribeResult {
   transcript: Transcript | null;
@@ -89,11 +94,19 @@ export interface InaudioApi {
     remove(id: string): Promise<void>;
     clear(): Promise<void>;
   };
+  companions: {
+    list(): Promise<CompanionPackage[]>;
+    get(): Promise<CompanionSnapshot>;
+    select(id: string): Promise<CompanionSnapshot>;
+    update(settings: CompanionSettings): Promise<CompanionSnapshot>;
+    setVisibility(visible: boolean): Promise<CompanionSnapshot>;
+  };
   events: {
     onCommand(listener: (command: AppCommand) => void): Unsubscribe;
     onModelProgress(listener: (event: ModelProgressEvent) => void): Unsubscribe;
     onStatusChanged(listener: () => void): Unsubscribe;
     onSettingsChanged(listener: (settings: Settings) => void): Unsubscribe;
     onOverlayState(listener: (state: OverlayState) => void): Unsubscribe;
+    onCompanionState(listener: (snapshot: CompanionSnapshot) => void): Unsubscribe;
   };
 }
