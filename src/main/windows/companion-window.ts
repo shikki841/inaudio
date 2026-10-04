@@ -24,7 +24,7 @@ export function createCompanionWindow(): BrowserWindow {
     skipTaskbar: true,
     focusable: false,
     alwaysOnTop: true,
-    roundedCorners: false,
+    roundedCorners: true,
     title: 'Inaudio companion',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
