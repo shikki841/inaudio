@@ -20,6 +20,7 @@ const FALLBACK_ROWS: Record<CompanionState, number> = {
   speaking: 3,
   ready: 0,
   error: 2,
+  'model-unavailable': 2,
   sleeping: 0,
   attention: 1,
 };

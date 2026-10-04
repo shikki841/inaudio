@@ -1,17 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { CompanionSnapshot } from '@shared/domain/companion';
 import { api } from './lib/api';
 import './styles/index.css';
 import { BuddySprite } from './features/companion/buddy-sprite';
+import { playCue } from './features/dictation/audio/cues';
 
 function Companion() {
   const [snapshot, setSnapshot] = useState<CompanionSnapshot | null>(null);
+  const [outputDeviceId, setOutputDeviceId] = useState('default');
+  const previousState = useRef<CompanionSnapshot['state'] | null>(null);
 
   useEffect(() => {
     let mounted = true;
     void api.companions.get().then((value) => {
       if (mounted) setSnapshot(value);
+    });
+    void api.settings.get().then((value) => {
+      if (mounted) setOutputDeviceId(value.audio.outputDeviceId);
     });
     const off = api.events.onCompanionState((value) => setSnapshot(value));
     return () => {
@@ -19,6 +25,26 @@ function Companion() {
       off();
     };
   }, []);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    const previous = previousState.current;
+    previousState.current = snapshot.state;
+    if (!snapshot.settings.soundEnabled || previous === null || previous === snapshot.state) return;
+    const cue =
+      snapshot.state === 'listening'
+        ? 'start'
+        : snapshot.state === 'speaking'
+          ? 'ready'
+          : snapshot.state === 'error' || snapshot.state === 'model-unavailable'
+            ? 'error'
+            : snapshot.state === 'attention'
+              ? 'attention'
+              : snapshot.state === 'ready'
+                ? 'stop'
+                : null;
+    if (cue) void playCue(cue, { volume: snapshot.settings.soundVolume, outputDeviceId });
+  }, [outputDeviceId, snapshot]);
 
   if (!snapshot) return null;
   const { companion, settings, state } = snapshot;
@@ -35,6 +61,8 @@ function Companion() {
             ? 'Thinking…'
             : state === 'error'
               ? 'Needs attention'
+              : state === 'model-unavailable'
+                ? 'Model needed'
               : state === 'attention'
                 ? 'I’m here'
                 : state === 'sleeping'

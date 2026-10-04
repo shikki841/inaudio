@@ -8,6 +8,7 @@ export const COMPANION_STATES = [
   'thinking',
   'ready',
   'error',
+  'model-unavailable',
   'sleeping',
   'attention',
 ] as const;
@@ -21,6 +22,7 @@ export const COMPANION_EVENTS = [
   'tts.completed',
   'model.loading',
   'model.loaded',
+  'model.missing',
   'app.idle',
   'app.error',
   'companion.clicked',
@@ -91,6 +93,8 @@ export const companionSettingsSchema = z.object({
   idleSleepMinutes: z.number().int().min(1).max(120),
   personality: z.enum(['calm', 'playful', 'curious', 'energetic', 'sleepy', 'quiet']),
   voiceEnabled: z.boolean(),
+  soundEnabled: z.boolean(),
+  soundVolume: z.number().min(0).max(1),
   reactions: z.record(z.enum(COMPANION_EVENTS), companionReactionSchema),
 });
 export type CompanionSettings = z.infer<typeof companionSettingsSchema>;
@@ -196,6 +200,8 @@ export const DEFAULT_COMPANION_REACTIONS = Object.fromEntries(
           ? 'listening'
           : event === 'model.loading'
             ? 'thinking'
+            : event === 'model.missing'
+              ? 'model-unavailable'
             : event === 'app.error'
               ? 'error'
               : event === 'companion.clicked'
@@ -221,5 +227,7 @@ export const DEFAULT_COMPANION_SETTINGS: CompanionSettings = {
   idleSleepMinutes: 20,
   personality: 'calm',
   voiceEnabled: false,
+  soundEnabled: false,
+  soundVolume: 0.5,
   reactions: DEFAULT_COMPANION_REACTIONS,
 };

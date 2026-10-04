@@ -299,7 +299,11 @@ export function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
     overlay: { ...base.overlay, ...patch.overlay },
     tray: { ...base.tray, ...patch.tray },
     system: { ...base.system, ...patch.system },
-    companion: { ...base.companion, ...patch.companion },
+    companion: {
+      ...base.companion,
+      ...patch.companion,
+      reactions: { ...base.companion.reactions, ...patch.companion?.reactions },
+    },
   });
 }
 

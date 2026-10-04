@@ -13,6 +13,7 @@ const STATES = [
   ['transcription.completed', 'When transcription finishes'],
   ['tts.started', 'When Inaudio speaks'],
   ['model.loading', 'While a model loads'],
+  ['model.missing', 'When a model is unavailable'],
   ['app.error', 'When something goes wrong'],
   ['companion.clicked', 'When I interact with it'],
 ] as const;
@@ -174,6 +175,26 @@ export function CompanionPage() {
             checked={companionSettings.voiceEnabled}
             onCheckedChange={(voiceEnabled) => change({ voiceEnabled })}
           />
+        </Row>
+        <Row label="Sound notifications" description="Play a short local cue when the buddy changes activity.">
+          <Switch
+            aria-label="Sound notifications"
+            checked={companionSettings.soundEnabled}
+            onCheckedChange={(soundEnabled) => change({ soundEnabled })}
+          />
+        </Row>
+        <Row label="Notification volume">
+          <div className="flex w-56 items-center gap-3">
+            <Slider
+              aria-label="Notification volume"
+              min={0}
+              max={1}
+              step={0.05}
+              value={[companionSettings.soundVolume]}
+              onValueChange={([soundVolume]) => soundVolume !== undefined && change({ soundVolume })}
+            />
+            <span className="w-12 text-right font-mono text-sm">{Math.round(companionSettings.soundVolume * 100)}%</span>
+          </div>
         </Row>
         <Row label="Sleep after inactivity" description="The buddy settles down without changing dictation or model state.">
           <div className="flex w-56 items-center gap-3">

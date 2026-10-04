@@ -1,6 +1,6 @@
-/** Short synthesized start/stop tones so no audio assets are needed. */
+/** Short synthesized tones so no audio assets are needed. */
 export async function playCue(
-  kind: 'start' | 'stop' | 'error',
+  kind: 'start' | 'stop' | 'error' | 'ready' | 'attention',
   options: { volume?: number; outputDeviceId?: string } = {},
 ): Promise<void> {
   const context = new AudioContext();
@@ -13,7 +13,16 @@ export async function playCue(
   }
   const osc = context.createOscillator();
   const gain = context.createGain();
-  const [from, to] = kind === 'start' ? [660, 880] : kind === 'stop' ? [880, 660] : [330, 220];
+  const [from, to] =
+    kind === 'start'
+      ? [660, 880]
+      : kind === 'stop'
+        ? [880, 660]
+        : kind === 'ready'
+          ? [520, 720]
+          : kind === 'attention'
+            ? [760, 520]
+            : [330, 220];
   const now = context.currentTime;
   osc.frequency.setValueAtTime(from, now);
   osc.frequency.linearRampToValueAtTime(to, now + 0.09);

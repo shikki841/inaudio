@@ -171,7 +171,14 @@ function bootstrap(): void {
     ipcReady = true;
     s.companion.on('changed', (snapshot) => send(EVENTS.companionState, snapshot));
     openCompanion();
-    void s.models.discover().catch((error: unknown) => console.error('Model discovery failed', error));
+    void s.models.discover()
+      .then(() => {
+        const active = s.modelStatuses().filter((model) => model.active);
+        if (active.some((model) => !model.installed || model.health === 'unavailable' || model.health === 'error')) {
+          s.companion.react('model.missing', 'model-unavailable');
+        }
+      })
+      .catch((error: unknown) => console.error('Model discovery failed', error));
 
     const applyTheme = () => {
       nativeTheme.themeSource = s.settings.get().appearance.theme;
@@ -212,6 +219,7 @@ function bootstrap(): void {
       send(EVENTS.modelProgress, event);
       if (event.state === 'downloading' || event.state === 'verifying') s.companion.react('model.loading', 'thinking');
       if (event.state === 'installed') s.companion.react('model.loaded', 'ready');
+      if (event.state === 'missing' || event.state === 'error') s.companion.react('model.missing', 'model-unavailable');
       if (event.state === 'installed' || event.state === 'missing' || event.state === 'error') {
         send(EVENTS.statusChanged);
       }
