@@ -92,4 +92,5 @@ export const schemas = {
   companionId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/),
   companionSettings: companionSettingsSchema,
   companionVisibility: z.boolean(),
+  companionHover: z.boolean(),
 };

@@ -82,6 +82,7 @@ export function registerIpc(services: Services): void {
     const result = await services.runModel(modelId, () => inference.transcribe(samples, sampleRate));
     const response: TranscribeResult = { transcript: null, text: result.text, inserted: false };
     if (!result.text) return response;
+    companion.react('transcription.completed', 'ready');
 
     const transcript: Transcript = {
       id: randomUUID(),
@@ -207,4 +208,8 @@ export function registerIpc(services: Services): void {
     else companion.hide();
     return companion.snapshot();
   });
+  listen('companion', IPC.companionHover, schemas.companionHover, (hovering) => {
+    companion.hover(hovering);
+  });
+  handleOn('companion', IPC.companionClick, none, () => companion.click());
 }

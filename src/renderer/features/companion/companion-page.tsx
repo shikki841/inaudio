@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { CompanionSettings } from '@shared/domain/companion';
+import type { SettingsPatch } from '@shared/domain/settings';
 import { PageHeader, Row, Section } from '@renderer/components/ui/layout';
 import { Select } from '@renderer/components/ui/select';
 import { Slider } from '@renderer/components/ui/slider';
@@ -22,20 +24,36 @@ export function CompanionPage() {
   const { data: settings } = useSettings();
   const packages = useQuery({ queryKey: ['companions'], queryFn: () => api.companions.list() });
   const update = useUpdateSettings();
+  const [drafts, setDrafts] = useState<Partial<Pick<CompanionSettings, 'scale' | 'edgeMargin' | 'soundVolume' | 'idleSleepMinutes'>>>({});
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (update.error) setError(update.error instanceof Error ? update.error.message : String(update.error));
+  }, [update.error]);
   if (!settings || !packages.data) return null;
   const companionSettings = settings.companion;
   const selected = packages.data.find((item) => item.id === companionSettings.activeId) ?? packages.data[0];
   if (!selected) return null;
 
-  const change = (patch: Partial<CompanionSettings>) => {
-    update.mutate({ companion: { ...companionSettings, ...patch } });
+  const change = (patch: SettingsPatch['companion']) => {
+    setError(null);
+    update.mutate({ companion: patch });
   };
   const reactionChange = (event: keyof CompanionSettings['reactions'], enabled: boolean) => {
-    change({ reactions: { ...companionSettings.reactions, [event]: { ...companionSettings.reactions[event], enabled } } });
+    change({ reactions: { [event]: { ...companionSettings.reactions[event], enabled } } });
+  };
+  const draftValue = <K extends keyof typeof drafts>(key: K, value: CompanionSettings[K]) =>
+    drafts[key] ?? value;
+  const setDraft = <K extends keyof typeof drafts>(key: K, value: CompanionSettings[K]) => {
+    setDrafts((current) => ({ ...current, [key]: value }));
+  };
+  const commitDraft = <K extends keyof typeof drafts>(key: K, value: CompanionSettings[K]) => {
+    setDraft(key, value);
+    change({ [key]: value } as SettingsPatch['companion']);
   };
 
   return (
     <>
+      {error && <p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
       <PageHeader
         title="Companion"
         description="Choose a small desktop companion that follows Inaudio's real voice and model states."
@@ -43,7 +61,12 @@ export function CompanionPage() {
           <Switch
             aria-label="Show companion"
             checked={companionSettings.visible}
-            onCheckedChange={(visible) => void api.companions.setVisibility(visible)}
+            onCheckedChange={(visible) => {
+              setError(null);
+              void api.companions.setVisibility(visible).catch((reason: unknown) => {
+                setError(reason instanceof Error ? reason.message : String(reason));
+              });
+            }}
           />
         }
       />
@@ -54,7 +77,12 @@ export function CompanionPage() {
             <button
               key={item.id}
               type="button"
-              onClick={() => void api.companions.select(item.id)}
+              onClick={() => {
+                setError(null);
+                void api.companions.select(item.id).catch((reason: unknown) => {
+                  setError(reason instanceof Error ? reason.message : String(reason));
+                });
+              }}
               className={`grid gap-3 rounded-xl border p-4 text-left transition-colors ${
                 item.id === selected.id ? 'border-accent bg-accent-soft' : 'border-line bg-sunken hover:bg-line'
               }`}
@@ -83,10 +111,11 @@ export function CompanionPage() {
               min={0.5}
               max={2}
               step={0.1}
-              value={[companionSettings.scale]}
-              onValueChange={([scale]) => scale !== undefined && change({ scale })}
+              value={[draftValue('scale', companionSettings.scale)]}
+              onValueChange={([scale]) => scale !== undefined && setDraft('scale', scale)}
+              onValueCommit={([scale]) => scale !== undefined && commitDraft('scale', scale)}
             />
-            <span className="w-12 text-right font-mono text-sm">{Math.round(companionSettings.scale * 100)}%</span>
+            <span className="w-12 text-right font-mono text-sm">{Math.round(draftValue('scale', companionSettings.scale) * 100)}%</span>
           </div>
         </Row>
         <Row label="Desktop position" description="The position is clamped to the active display work area.">
@@ -111,10 +140,11 @@ export function CompanionPage() {
               min={24}
               max={160}
               step={4}
-              value={[companionSettings.edgeMargin]}
-              onValueChange={([edgeMargin]) => edgeMargin !== undefined && change({ edgeMargin })}
+              value={[draftValue('edgeMargin', companionSettings.edgeMargin)]}
+              onValueChange={([edgeMargin]) => edgeMargin !== undefined && setDraft('edgeMargin', edgeMargin)}
+              onValueCommit={([edgeMargin]) => edgeMargin !== undefined && commitDraft('edgeMargin', edgeMargin)}
             />
-            <span className="w-16 text-right font-mono text-sm">{companionSettings.edgeMargin}px</span>
+            <span className="w-16 text-right font-mono text-sm">{draftValue('edgeMargin', companionSettings.edgeMargin)}px</span>
           </div>
         </Row>
         <Row label="Keep away from text" description="Adds a larger gap above the cursor when using Above active area.">
@@ -169,7 +199,7 @@ export function CompanionPage() {
             ]}
           />
         </Row>
-        <Row label="Spoken reactions" description="Reserved for the shared Kokoro voice service.">
+        <Row label="Spoken reactions" description="Speak the same status text shown in the companion bubble.">
           <Switch
             aria-label="Spoken reactions"
             checked={companionSettings.voiceEnabled}
@@ -190,10 +220,11 @@ export function CompanionPage() {
               min={0}
               max={1}
               step={0.05}
-              value={[companionSettings.soundVolume]}
-              onValueChange={([soundVolume]) => soundVolume !== undefined && change({ soundVolume })}
+              value={[draftValue('soundVolume', companionSettings.soundVolume)]}
+              onValueChange={([soundVolume]) => soundVolume !== undefined && setDraft('soundVolume', soundVolume)}
+              onValueCommit={([soundVolume]) => soundVolume !== undefined && commitDraft('soundVolume', soundVolume)}
             />
-            <span className="w-12 text-right font-mono text-sm">{Math.round(companionSettings.soundVolume * 100)}%</span>
+            <span className="w-12 text-right font-mono text-sm">{Math.round(draftValue('soundVolume', companionSettings.soundVolume) * 100)}%</span>
           </div>
         </Row>
         <Row label="Sleep after inactivity" description="The buddy settles down without changing dictation or model state.">
@@ -203,13 +234,12 @@ export function CompanionPage() {
               min={1}
               max={120}
               step={1}
-              value={[companionSettings.idleSleepMinutes]}
-              onValueChange={([idleSleepMinutes]) =>
-                idleSleepMinutes !== undefined && change({ idleSleepMinutes })
-              }
+              value={[draftValue('idleSleepMinutes', companionSettings.idleSleepMinutes)]}
+              onValueChange={([idleSleepMinutes]) => idleSleepMinutes !== undefined && setDraft('idleSleepMinutes', idleSleepMinutes)}
+              onValueCommit={([idleSleepMinutes]) => idleSleepMinutes !== undefined && commitDraft('idleSleepMinutes', idleSleepMinutes)}
             />
             <span className="w-16 text-right font-mono text-sm">
-              {companionSettings.idleSleepMinutes} min
+              {draftValue('idleSleepMinutes', companionSettings.idleSleepMinutes)} min
             </span>
           </div>
         </Row>
