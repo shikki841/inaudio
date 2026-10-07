@@ -66,6 +66,8 @@ const api: InaudioApi = {
     select: (id) => ipcRenderer.invoke(IPC.companionSelect, id),
     update: (settings) => ipcRenderer.invoke(IPC.companionUpdate, settings),
     setVisibility: (visible) => ipcRenderer.invoke(IPC.companionVisibility, visible),
+    hover: (hovering) => ipcRenderer.send(IPC.companionHover, hovering),
+    click: () => ipcRenderer.invoke(IPC.companionClick),
   },
   events: {
     onCommand: (listener) => subscribe(EVENTS.command, listener),

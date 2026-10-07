@@ -71,6 +71,21 @@ export interface CompanionSnapshot {
   companion: CompanionPackage;
   settings: CompanionSettings;
   state: CompanionState;
+  event?: CompanionEvent;
+  revision: number;
+}
+
+export function companionBubbleText(state: CompanionState, focusArea = false): string {
+  if (focusArea && state === 'transcribing') return 'I’m writing…';
+  if (state === 'listening') return 'Listening…';
+  if (state === 'transcribing') return 'Transcribing…';
+  if (state === 'speaking') return 'Speaking…';
+  if (state === 'thinking') return 'Thinking…';
+  if (state === 'error') return 'Needs attention';
+  if (state === 'model-unavailable') return 'Model needed';
+  if (state === 'attention') return 'I’m here';
+  if (state === 'sleeping') return 'Taking a pause';
+  return 'Ready';
 }
 
 export const companionReactionSchema = z.object({

@@ -34,6 +34,8 @@ export const IPC = {
   companionSelect: 'companion:select',
   companionUpdate: 'companion:update',
   companionVisibility: 'companion:visibility',
+  companionHover: 'companion:hover',
+  companionClick: 'companion:click',
 } as const;
 
 /** Main → renderer push events. */

@@ -3,7 +3,13 @@ export class PcmPlayer {
   private context: AudioContext | null = null;
   private source: AudioBufferSourceNode | null = null;
 
-  async play(samples: Float32Array, sampleRate: number, outputDeviceId: string, onEnded: () => void): Promise<void> {
+  async play(
+    samples: Float32Array,
+    sampleRate: number,
+    outputDeviceId: string,
+    onEnded: () => void,
+    volume = 1,
+  ): Promise<void> {
     this.stop();
     const context = new AudioContext({ sampleRate });
     this.context = context;
@@ -18,7 +24,10 @@ export class PcmPlayer {
     buffer.copyToChannel(new Float32Array(samples), 0);
     const source = context.createBufferSource();
     source.buffer = buffer;
-    source.connect(context.destination);
+    const gain = context.createGain();
+    gain.gain.value = Math.max(0, Math.min(1, volume));
+    source.connect(gain);
+    gain.connect(context.destination);
     source.onended = () => {
       if (this.source === source) {
         this.stop();

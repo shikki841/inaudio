@@ -100,6 +100,8 @@ export interface InaudioApi {
     select(id: string): Promise<CompanionSnapshot>;
     update(settings: CompanionSettings): Promise<CompanionSnapshot>;
     setVisibility(visible: boolean): Promise<CompanionSnapshot>;
+    hover(hovering: boolean): void;
+    click(): Promise<CompanionSnapshot>;
   };
   events: {
     onCommand(listener: (command: AppCommand) => void): Unsubscribe;
