@@ -13,22 +13,6 @@ on:
         description: Upload installers for the separate release publisher
         type: boolean
         default: false
-    secrets:
-      MAC_CSC_LINK:
-        required: false
-      MAC_CSC_KEY_PASSWORD:
-        required: false
-      APPLE_ID:
-        required: false
-      APPLE_APP_SPECIFIC_PASSWORD:
-        required: false
-      APPLE_TEAM_ID:
-        required: false
-      WIN_CSC_LINK:
-        required: false
-      WIN_CSC_KEY_PASSWORD:
-        required: false
-
 permissions:
   contents: read
 
@@ -85,19 +69,6 @@ jobs:
         run: |
           [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
           npm version "$RELEASE_VERSION" --no-git-tag-version --ignore-scripts --allow-same-version
-      - name: Validate release signing configuration
-        if: inputs.release-build && (runner.os == 'Windows' || runner.os == 'macOS')
-        env:
-          CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.MAC_CSC_KEY_PASSWORD || secrets.WIN_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          [[ -n "$CSC_LINK" && -n "$CSC_KEY_PASSWORD" ]] || { echo "Missing platform signing certificate secrets"; exit 1; }
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            [[ -n "$APPLE_ID" && -n "$APPLE_APP_SPECIFIC_PASSWORD" && -n "$APPLE_TEAM_ID" ]] || { echo "Missing Apple notarization secrets"; exit 1; }
-          fi
       - name: Generate macOS application icon
         if: runner.os == 'macOS'
         run: |
@@ -109,14 +80,7 @@ jobs:
           done
           iconutil -c icns assets/icons/icon.iconset -o assets/icons/icon.icns
           rm -r assets/icons/icon.iconset
-      - name: Build signed release artifacts
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ inputs.release-build && 'true' || 'false' }}
-          CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.MAC_CSC_KEY_PASSWORD || secrets.WIN_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Build release artifacts
         run: npm run package:release
       - name: Collect installers and checksums
         run: node scripts/release-assets.mjs
