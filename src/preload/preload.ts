@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import { EVENTS, IPC, type EventChannel } from '@shared/ipc/channels';
 import type { InaudioApi } from '@shared/ipc/api';
+import type { UpdateStatus } from '@shared/domain/update';
 
 // The renderer never sees ipcRenderer. Each capability is a fixed function.
 function subscribe<T>(channel: EventChannel, listener: (payload: T) => void) {
@@ -18,6 +19,12 @@ const api: InaudioApi = {
     revealModels: () => ipcRenderer.invoke(IPC.systemRevealModels),
     window: (action) => ipcRenderer.invoke(IPC.systemWindow, action),
     menu: (command) => ipcRenderer.invoke(IPC.systemMenu, command),
+  },
+  updates: {
+    status: () => ipcRenderer.invoke(IPC.updateStatus),
+    check: () => ipcRenderer.invoke(IPC.updateCheck),
+    download: () => ipcRenderer.invoke(IPC.updateDownload),
+    install: () => ipcRenderer.invoke(IPC.updateInstall),
   },
   settings: {
     get: () => ipcRenderer.invoke(IPC.settingsGet),
@@ -76,6 +83,7 @@ const api: InaudioApi = {
     onSettingsChanged: (listener) => subscribe(EVENTS.settingsChanged, listener),
     onOverlayState: (listener) => subscribe(EVENTS.overlayState, listener),
     onCompanionState: (listener) => subscribe(EVENTS.companionState, listener),
+    onUpdateState: (listener: (status: UpdateStatus) => void) => subscribe(EVENTS.updateState, listener),
   },
 };
 

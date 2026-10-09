@@ -1,0 +1,44 @@
+appId: app.inaudio.desktop
+productName: Inaudio
+copyright: Copyright © MUCHACHO
+directories:
+  output: out/builder
+  buildResources: assets/icons
+publish:
+  provider: github
+  owner: shikki841
+  repo: inaudio
+  releaseType: release
+artifactName: Inaudio-${version}-${arch}.${ext}
+win:
+  executableName: inaudio
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: assets/icons/icon.ico
+mac:
+  category: public.app-category.utilities
+  target:
+    - target: zip
+      arch:
+        - arm64
+  icon: assets/icons/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+linux:
+  category: Utility
+  maintainer: MUCHACHO <maintainer@inaudio.app>
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+    - target: rpm
+      arch:
+        - x64
+  icon: assets/icons/icon.png
+  synopsis: Offline desktop voice input
+  description: Local, offline desktop voice input with on-device speech recognition and speech synthesis.

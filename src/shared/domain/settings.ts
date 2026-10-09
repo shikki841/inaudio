@@ -194,6 +194,10 @@ export const settingsSchema = z.object({
     autoUnload: z.boolean(),
     idleMinutes: z.number().int().min(1).max(60),
   }),
+  updates: z.object({
+    checkAutomatically: z.boolean(),
+    downloadAutomatically: z.boolean(),
+  }),
   companion: companionSettingsSchema,
 });
 
@@ -209,6 +213,7 @@ const GROUP_KEYS = [
   'overlay',
   'tray',
   'system',
+  'updates',
   'companion',
 ] as const;
 type GroupKey = (typeof GROUP_KEYS)[number];
@@ -264,6 +269,7 @@ export const DEFAULT_SETTINGS: Settings = {
     notifications: false,
   },
   system: { launchAtLogin: false, closeToTray: true, autoUnload: true, idleMinutes: 10 },
+  updates: { checkAutomatically: true, downloadAutomatically: true },
   companion: DEFAULT_COMPANION_SETTINGS,
 };
 
@@ -281,6 +287,7 @@ export const settingsPatchSchema = z
     overlay: settingsSchema.shape.overlay.partial().strict().optional(),
     tray: settingsSchema.shape.tray.partial().strict().optional(),
     system: settingsSchema.shape.system.partial().strict().optional(),
+    updates: settingsSchema.shape.updates.partial().strict().optional(),
     companion: settingsSchema.shape.companion.partial().strict().optional(),
   })
   .strict();
@@ -299,6 +306,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
     overlay: { ...base.overlay, ...patch.overlay },
     tray: { ...base.tray, ...patch.tray },
     system: { ...base.system, ...patch.system },
+    updates: { ...base.updates, ...patch.updates },
     companion: {
       ...base.companion,
       ...patch.companion,

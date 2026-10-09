@@ -26,7 +26,7 @@ export function collectSystemStatus(deps: {
   inserter: TextInserter;
   overlay: OverlayController;
   tray: TrayService;
-}): Omit<SystemStatus, 'window'> {
+}): Omit<SystemStatus, 'window' | 'update'> {
   return {
     platform: process.platform,
     arch: process.arch,

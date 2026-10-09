@@ -2,6 +2,7 @@ import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/re
 import type { HistoryQuery } from '@shared/domain/history';
 import type { ModelId } from '@shared/domain/models';
 import type { Settings, SettingsPatch } from '@shared/domain/settings';
+import type { UpdateStatus } from '@shared/domain/update';
 import { api } from './api';
 
 export const queryClient = new QueryClient({
@@ -46,6 +47,27 @@ export function useUpdateSettings() {
 
 export function useSystemStatus() {
   return useQuery({ queryKey: keys.status, queryFn: () => api.system.status(), refetchInterval: 15_000 });
+}
+
+export function useUpdateStatus() {
+  return useQuery<UpdateStatus>({
+    queryKey: ['update'],
+    queryFn: () => api.updates.status(),
+    refetchInterval: 10_000,
+  });
+}
+
+export function useUpdateActions() {
+  const client = useQueryClient();
+  const refresh = (status: UpdateStatus) => {
+    client.setQueryData(['update'], status);
+    void client.invalidateQueries({ queryKey: keys.status });
+  };
+  return {
+    check: useMutation({ mutationFn: () => api.updates.check(), onSuccess: refresh }),
+    download: useMutation({ mutationFn: () => api.updates.download(), onSuccess: refresh }),
+    install: useMutation({ mutationFn: () => api.updates.install() }),
+  };
 }
 
 export function useHistory(query: HistoryQuery) {

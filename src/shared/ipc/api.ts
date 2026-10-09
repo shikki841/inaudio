@@ -18,6 +18,7 @@ import type {
   CompanionSnapshot,
   CompanionSettings,
 } from '../domain/companion';
+import type { UpdateStatus } from '../domain/update';
 
 export interface TranscribeResult {
   transcript: Transcript | null;
@@ -42,6 +43,12 @@ export interface InaudioApi {
     revealModels(): Promise<void>;
     window(action: WindowAction): Promise<void>;
     menu(command: AppMenuCommand): Promise<void>;
+  };
+  updates: {
+    status(): Promise<UpdateStatus>;
+    check(): Promise<UpdateStatus>;
+    download(): Promise<UpdateStatus>;
+    install(): Promise<void>;
   };
   settings: {
     get(): Promise<Settings>;
@@ -110,5 +117,6 @@ export interface InaudioApi {
     onSettingsChanged(listener: (settings: Settings) => void): Unsubscribe;
     onOverlayState(listener: (state: OverlayState) => void): Unsubscribe;
     onCompanionState(listener: (snapshot: CompanionSnapshot) => void): Unsubscribe;
+    onUpdateState(listener: (status: UpdateStatus) => void): Unsubscribe;
   };
 }

@@ -1,4 +1,4 @@
-import { Check, FolderOpen, Search, X } from 'lucide-react';
+import { Check, Download, FolderOpen, RefreshCw, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@renderer/components/ui/button';
 import { Badge, PageHeader, Row, Section } from '@renderer/components/ui/layout';
@@ -7,7 +7,7 @@ import { Segmented } from '@renderer/components/ui/segmented';
 import { Select } from '@renderer/components/ui/select';
 import { Switch } from '@renderer/components/ui/switch';
 import { api } from '@renderer/lib/api';
-import { useSettings, useSystemStatus, useUpdateSettings } from '@renderer/lib/queries';
+import { useSettings, useSystemStatus, useUpdateActions, useUpdateSettings, useUpdateStatus } from '@renderer/lib/queries';
 import type { Settings } from '@shared/domain/settings';
 import type { ShortcutStatus } from '@shared/domain/system';
 import { OverlaySettings } from './overlay-settings';
@@ -52,6 +52,7 @@ const SEARCH_ITEMS = [
   { id: 'settings-unload', label: 'Unload models when idle', section: 'Performance', keywords: 'memory ram free idle minutes' },
   { id: 'settings-app', label: 'App', section: 'App', keywords: 'login tray setup close quit' },
   { id: 'settings-about', label: 'About', section: 'About', keywords: 'version engine data folder models' },
+  { id: 'settings-updates', label: 'Updates', section: 'About', keywords: 'update download install release rollout version' },
 ] as const;
 
 /** Three words for the three ways a configured accelerator can land. */
@@ -88,7 +89,9 @@ export function SettingsPage() {
   const [search, setSearch] = useState('');
   const { data: settings } = useSettings();
   const { data: status } = useSystemStatus();
+  const { data: updateStatus } = useUpdateStatus();
   const update = useUpdateSettings();
+  const updateActions = useUpdateActions();
   const results = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return [];
@@ -405,6 +408,54 @@ export function SettingsPage() {
           </Button>
         </Row>
         <Row label="Version" description={`Inaudio ${status.appVersion} · Electron ${status.electronVersion} · ${status.platform} ${status.arch}`} />
+        <Row
+          label="Updates"
+          description={
+            updateStatus?.state === 'available'
+              ? `Version ${updateStatus.availableVersion} is ready to download.`
+              : updateStatus?.state === 'downloading'
+                ? `Downloading ${updateStatus.availableVersion ?? 'update'}${updateStatus.progress === undefined ? '' : ` · ${Math.round(updateStatus.progress)}%`}.`
+                : updateStatus?.state === 'downloaded'
+                  ? `Version ${updateStatus.availableVersion} is ready to install.`
+                  : updateStatus?.state === 'error'
+                    ? updateStatus.error
+                    : updateStatus?.state === 'up-to-date'
+                      ? 'You are using the latest version.'
+                      : updateStatus?.state === 'unavailable'
+                        ? 'Updates are available in packaged builds.'
+                        : 'Check for signed updates from GitHub Releases.'
+          }
+        >
+          <div className="flex flex-wrap justify-end gap-2">
+            {updateStatus?.state === 'downloaded' ? (
+              <Button size="sm" onClick={() => updateActions.install.mutate()} disabled={updateActions.install.isPending}>
+                <Download /> Restart to update
+              </Button>
+            ) : updateStatus?.state === 'available' ? (
+              <Button size="sm" onClick={() => updateActions.download.mutate()} disabled={updateActions.download.isPending}>
+                <Download /> Download
+              </Button>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={() => updateActions.check.mutate()} disabled={updateActions.check.isPending || updateStatus?.state === 'unavailable'}>
+                <RefreshCw /> Check now
+              </Button>
+            )}
+          </div>
+        </Row>
+        <Row label="Automatic updates" description="Check for updates automatically and download them in the background.">
+          <Switch
+            aria-label="Check for updates automatically"
+            checked={settings.updates.checkAutomatically}
+            onCheckedChange={(checkAutomatically) => update.mutate({ updates: { checkAutomatically } })}
+          />
+        </Row>
+        <Row label="Background downloads" description="Download signed updates without interrupting your work.">
+          <Switch
+            aria-label="Download updates automatically"
+            checked={settings.updates.downloadAutomatically}
+            onCheckedChange={(downloadAutomatically) => update.mutate({ updates: { downloadAutomatically } })}
+          />
+        </Row>
         <Row label="Engine" description="sherpa-onnx, CPU. No network access after models are downloaded.">
           <Button size="sm" variant="ghost" onClick={() => void api.system.openLink('sherpaOnnx')}>
             Project page
