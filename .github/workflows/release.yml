@@ -44,7 +44,6 @@ jobs:
     with:
       version: ${{ needs.version.outputs.version }}
       release-build: true
-    secrets: inherit
 
   publish:
     needs: [version, ci]
