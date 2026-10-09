@@ -66,6 +66,10 @@ function Companion() {
       !snapshot.settings.voiceEnabled ||
       !snapshot.settings.soundEnabled ||
       !snapshot.event ||
+      snapshot.state === 'listening' ||
+      snapshot.state === 'transcribing' ||
+      snapshot.event === 'dictation.started' ||
+      snapshot.event === 'dictation.stopped' ||
       snapshot.revision === spokenRevision.current ||
       snapshot.event === 'tts.started' ||
       snapshot.event === 'tts.completed'
