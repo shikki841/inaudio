@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const platform = process.platform;
 const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
-const prepackaged = path.resolve('out', `inaudio-${platform}-${arch}`);
+const prepackaged = path.resolve('out', `Inaudio-${platform}-${arch}`);
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const run = (command, args) => {
   if (process.platform !== 'win32') {
