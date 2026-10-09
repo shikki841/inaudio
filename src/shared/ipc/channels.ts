@@ -5,6 +5,10 @@ export const IPC = {
   systemRevealModels: 'system:reveal-models',
   systemWindow: 'system:window',
   systemMenu: 'system:menu',
+  updateStatus: 'update:status',
+  updateCheck: 'update:check',
+  updateDownload: 'update:download',
+  updateInstall: 'update:install',
   settingsGet: 'settings:get',
   settingsUpdate: 'settings:update',
   modelsList: 'models:list',
@@ -46,6 +50,7 @@ export const EVENTS = {
   settingsChanged: 'event:settings-changed',
   overlayState: 'event:overlay-state',
   companionState: 'event:companion-state',
+  updateState: 'event:update-state',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

@@ -1,6 +1,5 @@
 import { app, BrowserWindow, Menu, nativeTheme, powerMonitor, systemPreferences } from 'electron';
 import path from 'node:path';
-import started from 'electron-squirrel-startup';
 import type { AppCommand } from '@shared/domain/system';
 import { DEFAULT_SETTINGS } from '@shared/domain/settings';
 import { EVENTS } from '@shared/ipc/channels';
@@ -14,8 +13,6 @@ import { ShortcutService } from './services/shortcuts';
 import { TrayService } from './services/tray';
 import { createMainWindow } from './windows/main-window';
 import { createCompanionWindow } from './windows/companion-window';
-
-if (started) app.quit();
 
 app.setName('Inaudio');
 if (!app.requestSingleInstanceLock()) {
@@ -32,6 +29,7 @@ function bootstrap(): void {
   let services: Services | null = null;
   let ipcReady = false;
   let quitting = false;
+  let installingUpdate = false;
 
   const send = (channel: string, payload?: unknown) => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
@@ -167,9 +165,14 @@ function bootstrap(): void {
       showWindow,
     });
     const s = services;
+    s.updater.setBeforeInstall(() => {
+      installingUpdate = true;
+      quitting = true;
+    });
     registerIpc(s);
     ipcReady = true;
     s.companion.on('changed', (snapshot) => send(EVENTS.companionState, snapshot));
+    s.updater.on('change', (status) => send(EVENTS.updateState, status));
     openCompanion();
     void s.models.discover()
       .then(() => {
@@ -214,6 +217,7 @@ function bootstrap(): void {
         shortcuts.apply(next);
       }
       if (next.system.launchAtLogin !== previous.system.launchAtLogin) applySystem();
+      if (JSON.stringify(next.updates) !== JSON.stringify(previous.updates)) s.updater.applySettings(next.updates);
       if (next.stt.modelId !== previous.stt.modelId) void s.inference.unload('stt').catch(() => undefined);
       if (JSON.stringify(next.overlay) !== JSON.stringify(previous.overlay)) s.overlay.sync();
       if (
@@ -246,6 +250,7 @@ function bootstrap(): void {
 
     mainWindow = openWindow();
     void s.inference.start().catch((error: unknown) => console.error(error));
+    s.updater.start();
   });
 
   app.on('activate', () => {
@@ -260,6 +265,10 @@ function bootstrap(): void {
 
   app.on('will-quit', (event) => {
     shortcuts.clear();
+    if (installingUpdate) {
+      tray.destroy();
+      return;
+    }
     if (!services) {
       companionWindow?.close();
       tray.destroy();

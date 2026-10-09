@@ -6,7 +6,7 @@ The workflow first runs the reusable CI workflow on Windows, Linux, and macOS. E
 
 A rerun for a commit that already has a public release exits without changing its assets. A partially uploaded draft can be resumed when its existing assets match their local checksums. Conflicting assets, tags, release targets, or checksums fail closed; remove the failed draft manually after investigating before retrying. Published assets are never overwritten.
 
-Artifacts are Windows x64 Squirrel installers (`.exe`, `.nupkg`, and `RELEASES`), Linux x64 `.deb` and `.rpm` packages, and an Apple Silicon macOS `.zip`. Intel macOS and Linux ARM64 are not built. Checksums and platform-prefixed filenames prevent collisions. The Squirrel `RELEASES` file is supplied for inspection; this pipeline does not configure an automatic update feed.
+Artifacts are signed electron-builder updates for Windows x64 (NSIS), Linux x64 (AppImage plus `.deb` and `.rpm`), and Apple Silicon macOS (`.zip`). Intel macOS and Linux ARM64 are not built. Each release also contains the platform update manifest (`latest.yml`, `latest-linux.yml`, or `latest-mac.yml`) and blockmaps used by `electron-updater`, plus SHA-256 manifests. The client only checks feeds in packaged builds and requires HTTPS plus platform-trusted signatures.
 
 Use conventional commit messages in the commits that actually reach `main` (including squash merge titles). For example, an initial `fix:` commit produces `v1.0.1`, while an initial `feat:` produces `v1.1.0`. No version commit is pushed back to the repository. GitHub notes are grouped using `.github/release.yml`; labels affect notes, while commit messages determine versions.
 
@@ -18,6 +18,10 @@ The release concurrency group serializes active releases. GitHub may replace an 
 
 Use **Run workflow** only when a push to `main` was not delivered. The workflow still uses the selected commit on `main`; do not run it from a feature branch. `GITHUB_TOKEN` needs repository Actions permission to read releases and contents write permission is granted only to the publisher job.
 
-The macOS runner creates `assets/icons/icon.icns` from the checked-in PNG because the repository does not currently contain an ICNS source. Signing, notarization, and platform-specific code signing are intentionally not configured; add those credentials to protected GitHub Actions environments before enabling them. Build jobs do not receive release secrets.
+The macOS runner creates `assets/icons/icon.icns` from the checked-in PNG because the repository does not currently contain an ICNS source. Production release builds require protected `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, `WIN_CSC_LINK`, and `WIN_CSC_KEY_PASSWORD` secrets. Build jobs receive them only through the reusable release workflow and fail closed when signing inputs are missing. Pull-request builds remain unsigned.
+
+Published manifests can be staged with the **Update rollout percentage** workflow. It rewrites the `stagingPercentage` field in every platform manifest without rebuilding the binary. Start with a small percentage, verify telemetry and support signals, then increase it to 100. The client keeps a persistent hashed installation identifier and uses the manifest percentage to make the rollout decision stable per installation.
+
+The About section exposes update state, manual check/download/install actions, and preferences for automatic checks and background downloads. Installation is explicit: the app disposes inference, models, tray, companion, history, and shortcuts before `electron-updater` quits and relaunches the new version.
 
 Action references in the workflows are immutable commit SHAs. Update them only after checking the upstream release tag and commit with `gh api` or `git ls-remote`, then update the adjacent version comment.

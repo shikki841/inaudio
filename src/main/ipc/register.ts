@@ -54,6 +54,14 @@ export function registerIpc(services: Services): void {
     const route = command.slice('view.'.length);
     win.webContents.send(EVENTS.command, `navigate:${route}`);
   });
+  handle(IPC.updateStatus, none, () => services.updater.get());
+  handle(IPC.updateCheck, none, () => services.updater.check());
+  handle(IPC.updateDownload, none, () => services.updater.download());
+  handle(IPC.updateInstall, none, () =>
+    services.updater.install(async () => {
+      await services.dispose();
+    }),
+  );
 
   handle(IPC.settingsGet, none, () => settings.get());
   handleOn('main', IPC.settingsUpdate, schemas.settingsPatch, (patch) =>

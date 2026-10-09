@@ -22,6 +22,7 @@ import { collectSystemStatus } from './system-status';
 import { TextInserter } from './text-insertion';
 import type { TrayService } from './tray';
 import { CompanionService } from './companion-service';
+import { UpdaterService } from './updater';
 
 export interface Services {
   paths: AppPaths;
@@ -33,6 +34,7 @@ export interface Services {
   shortcuts: ShortcutService;
   tray: TrayService;
   companion: CompanionService;
+  updater: UpdaterService;
   overlay: OverlayController;
   dictation: DictationController;
   /** Records the devices the capturing window can see, for the tray and the id allow-list. */
@@ -69,6 +71,7 @@ export function createServices(options: {
   const { paths } = options;
   const settings = new SettingsStore(paths.settings);
   const companion = new CompanionService(paths, settings);
+  const updater = new UpdaterService(paths.data, settings.get().updates);
   const inference = new InferenceHost();
   const models = new ModelManager(paths.models, paths.downloads, (id) => inference.isLoaded(id));
   const history = new HistoryRepository(paths.database);
@@ -283,7 +286,7 @@ export function createServices(options: {
   });
 
   return {
-    paths, settings, history, models, inference, inserter, companion,
+    paths, settings, history, models, inference, inserter, companion, updater,
     shortcuts: options.shortcuts, tray: options.tray, window: options.window,
     overlay, dictation, reportDevices, updateSettings: applySettings,
     listDevices: () => reportedDevices,
@@ -299,7 +302,7 @@ export function createServices(options: {
         tray: options.tray,
       });
       const win = options.window();
-      return { ...base, models: modelStatuses(), window: {
+      return { ...base, models: modelStatuses(), update: updater.get(), window: {
         maximized: !!win && !win.isDestroyed() && win.isMaximized(),
         minimizable: !!win && !win.isDestroyed() && win.isMinimizable(),
         maximizable: !!win && !win.isDestroyed() && win.isMaximizable(),

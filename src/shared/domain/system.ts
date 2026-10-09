@@ -1,5 +1,6 @@
 import type { ModelStatus } from './models';
 import type { AccentTone } from './settings';
+import type { UpdateStatus } from './update';
 
 export type PermissionState = 'granted' | 'denied' | 'restricted' | 'not-determined' | 'unknown';
 
@@ -52,6 +53,7 @@ export interface SystemStatus {
   models: ModelStatus[];
   worker: WorkerHealth;
   onBattery: boolean;
+  update: UpdateStatus;
   window: {
     maximized: boolean;
     minimizable: boolean;
