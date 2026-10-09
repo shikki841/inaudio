@@ -7,11 +7,11 @@ const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
 const prepackaged = path.resolve('out', `Inaudio-${platform}-${arch}`);
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const run = (command, args) => {
-  if (process.platform !== 'win32') {
-    execFileSync(command, args, { stdio: 'inherit' });
+  if (process.platform === 'win32') {
+    execFileSync('cmd.exe', ['/d', '/s', '/c', command, ...args], { stdio: 'inherit' });
     return;
   }
-  execFileSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', [command, ...args].join(' ')], {
+  execFileSync(command, args, {
     stdio: 'inherit',
   });
 };
