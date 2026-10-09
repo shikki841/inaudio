@@ -28,6 +28,7 @@ mac:
   gatekeeperAssess: false
 linux:
   category: Utility
+  maintainer: MUCHACHO <maintainer@inaudio.app>
   target:
     - target: AppImage
       arch:
