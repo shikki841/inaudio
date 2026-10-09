@@ -27,6 +27,7 @@ interface DictationState {
 
 const recorder = new Recorder();
 let limitTimer: ReturnType<typeof setTimeout> | undefined;
+let starting = false;
 
 function settings(): Settings | undefined {
   return queryClient.getQueryData<Settings>(keys.settings);
@@ -79,20 +80,20 @@ export const useDictation = create<DictationState>((set, get) => {
     message: null,
 
     async start() {
-      if (get().phase === 'listening' || get().phase === 'transcribing') return;
-      const current = settings();
+      if (starting || get().phase === 'listening' || get().phase === 'transcribing') return;
+      starting = true;
       try {
+        const current = settings() ?? (await api.settings.get());
+        await api.models.load(current.stt.modelId);
         await recorder.start({
-          deviceId: current?.audio.inputDeviceId ?? 'default',
-          gain: current?.audio.inputGain ?? 1,
+          deviceId: current.audio.inputDeviceId,
+          gain: current.audio.inputGain,
           onLevel: (level) => set({ level }),
         });
-        if (current?.dictation.playCues) void playCue('start', { volume: current.dictation.cueVolume, outputDeviceId: current.audio.outputDeviceId });
+        if (current.dictation.playCues) void playCue('start', { volume: current.dictation.cueVolume, outputDeviceId: current.audio.outputDeviceId });
         setPhase('listening', { startedAt: Date.now(), message: null, level: 0 });
         startLevelReports();
         limitTimer = setTimeout(() => void get().stop(), MAX_RECORDING_MS);
-        // Warm the STT model while the user speaks.
-        if (current) void api.models.load(current.stt.modelId).catch(() => undefined);
       } catch (error) {
         const name = error instanceof DOMException ? error.name : '';
         const message =
@@ -102,6 +103,8 @@ export const useDictation = create<DictationState>((set, get) => {
               ? 'The selected microphone is not available.'
               : errorMessage(error);
         setPhase('error', { message });
+      } finally {
+        starting = false;
       }
     },
 

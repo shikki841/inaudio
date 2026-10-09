@@ -79,7 +79,9 @@ export function registerIpc(services: Services): void {
   handle(IPC.dictationTranscribe, schemas.transcribe, async ({ samples, sampleRate, insert }) => {
     const current = settings.get();
     const modelId: ModelId = current.stt.modelId;
-    const result = await services.runModel(modelId, () => inference.transcribe(samples, sampleRate));
+    // A companion voice request may already be queued when the user stops speaking.
+    // Transcription gets priority so a cosmetic reaction cannot extend this wait.
+    const result = await services.runModel(modelId, () => inference.transcribe(samples, sampleRate), 100);
     const response: TranscribeResult = { transcript: null, text: result.text, inserted: false };
     if (!result.text) return response;
     companion.react('transcription.completed', 'ready');

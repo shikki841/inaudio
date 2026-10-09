@@ -45,7 +45,7 @@ export interface Services {
   updateSettings(patch: SettingsPatch): Settings;
   window(): BrowserWindow | null;
   status(): SystemStatus;
-  runModel<T>(id: ModelId, operation: () => Promise<T>): Promise<T>;
+  runModel<T>(id: ModelId, operation: () => Promise<T>, priority?: number): Promise<T>;
   ensureLoaded(id: ModelId): Promise<void>;
   unloadModel(id: ModelId): Promise<void>;
   activateModel(id: ModelId): Promise<void>;
@@ -124,14 +124,49 @@ export function createServices(options: {
   });
   type Lifecycle = Pick<ModelStatus, 'loadState' | 'health' | 'lastUsedAt' | 'error'>;
   const lifecycle = new Map<ModelId, Lifecycle>();
-  let queue: Promise<unknown> = Promise.resolve();
+  interface Job<T> {
+    operation: () => Promise<T>;
+    resolve(value: T): void;
+    reject(error: unknown): void;
+    priority: number;
+    order: number;
+  }
+  const jobs: Job<unknown>[] = [];
+  let running = false;
+  let order = 0;
+  let resolveIdle: () => void = () => undefined;
+  let idle: Promise<void> = Promise.resolve();
   let closing = false;
   let idleTimer: NodeJS.Timeout | undefined;
-  function serial<T>(operation: () => Promise<T>): Promise<T> {
+  function serial<T>(operation: () => Promise<T>, priority = 0): Promise<T> {
     if (closing) return Promise.reject(new Error('Application is shutting down'));
-    const job = queue.then(operation);
-    queue = job.catch(() => undefined);
+    const job = new Promise<T>((resolve, reject) => {
+      jobs.push({ operation, resolve, reject, priority, order: order++ });
+    });
+    jobs.sort((left, right) => right.priority - left.priority || left.order - right.order);
+    if (!running) {
+      running = true;
+      idle = new Promise<void>((resolve) => { resolveIdle = resolve; });
+      void drain();
+    }
     return job;
+  }
+  async function drain(): Promise<void> {
+    try {
+      while (jobs.length) {
+        const job = jobs.shift();
+        if (!job) continue;
+        try {
+          job.resolve(await job.operation());
+        } catch (error) {
+          job.reject(error);
+        }
+      }
+    } finally {
+      running = false;
+      resolveIdle();
+      resolveIdle = () => undefined;
+    }
   }
   function state(id: ModelId): Lifecycle {
     let value = lifecycle.get(id);
@@ -274,13 +309,13 @@ export function createServices(options: {
       } };
     },
     modelStatuses,
-    ensureLoaded: (id) => serial(() => load(id)),
-    runModel: (id, operation) => serial(async () => {
+    ensureLoaded: (id) => serial(() => load(id), MODEL_CATALOG[id].kind === 'stt' ? 100 : 0),
+    runModel: (id, operation, priority = 0) => serial(async () => {
       clearTimeout(idleTimer);
       await load(id);
       try { return await operation(); }
       finally { state(id).lastUsedAt = Date.now(); notify(); scheduleIdle(); }
-    }),
+    }, priority),
     unloadModel: (id) => serial(async () => { await unload(id); scheduleIdle(); }),
     activateModel: (id) => serial(async () => {
       // A model only ever becomes active in the kind it belongs to, so the id is narrowed
@@ -322,7 +357,7 @@ export function createServices(options: {
       overlay.destroy();
       models.cancelAll();
       await inference.stop();
-      await queue;
+      await idle;
       await inference.stop();
       history.close();
     },
