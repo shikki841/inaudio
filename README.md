@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icons/icon.png" width="180" height="180" alt="Inaudio microphone logo" />
+  <img src="assets/images/readme.png" width="100%" height="100%" alt="Inaudio microphone logo" />
 </p>
 <h1 align="center">Inaudio</h1>
 <p align="center">Your voice, on your machine.</p>
