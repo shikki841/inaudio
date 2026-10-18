@@ -50,3 +50,18 @@ jobs:
               }
             }
             core.setFailed('Link an existing issue in this repository with Closes #123, Fixes #123, or Resolves #123 in the PR description. Maintenance PRs with docs/build/ci/chore titles may instead use a No-issue: line with a meaningful reason (at least 10 characters).');
+      - name: Reject co-author trailers
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            // Commits and descriptions carry no Co-Authored-By trailers, from people or tools (#60).
+            const trailer = /^[ \t]*co-authored-by:/im;
+            const pull_number = context.payload.pull_request.number;
+            const commits = await github.paginate(github.rest.pulls.listCommits, { ...context.repo, pull_number, per_page: 100 });
+            const offending = commits.filter((commit) => trailer.test(commit.commit.message)).map((commit) => commit.sha.slice(0, 7));
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number });
+            const inBody = trailer.test(pr.body || '');
+            if (offending.length || inBody) {
+              const where = [offending.length ? `commits ${offending.join(', ')}` : '', inBody ? 'the PR description' : ''].filter(Boolean).join(' and ');
+              core.setFailed(`Remove Co-Authored-By trailers from ${where}. Amend or reword the commits (git rebase -i, then reword) and force-push the branch.`);
+            }

@@ -7,6 +7,9 @@
 - On Windows, run npm from Git Bash: PowerShell blocks `npm.ps1` (execution policy).
 - `npm start` exits immediately if the installed Inaudio app is running (single-instance lock, shared `%APPDATA%\Inaudio`).
 
+## Commits
+- No `Co-Authored-By` trailers or "Generated with" footers in commits or PR descriptions. The PR policy check rejects them.
+
 ## Companion
 - Companions are built-in Blobatars (`@blobatar/react`, `animate="always"`). The roster lives in `src/shared/domain/companion.ts` (`COMPANIONS`); each entry pins `traits.shape` to a shape band. There is no external package/spritesheet loader — do not reintroduce one.
 - State → face mapping is `companionExpression()` in `src/renderer/features/companion/companion-avatar.tsx`; idle mood drift is in `src/renderer/companion.tsx`.

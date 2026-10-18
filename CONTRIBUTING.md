@@ -29,7 +29,7 @@ Keep IPC capabilities explicit, validate inputs in the main process, and render 
 
 ## Pull requests
 
-Use a Conventional Commit title such as `fix: restore microphone selection` or `feat: add playback speed control`. Explain the problem, the resulting behavior, and how you tested it. Include screenshots for visible UI changes and `Closes #123` when resolving an issue; GitHub closes linked issues when the PR merges into the default branch. Follow the PR template and [automation rules](.github/AUTOMATION.md) for changes without an issue.
+Use a Conventional Commit title such as `fix: restore microphone selection` or `feat: add playback speed control`. Commits and PR descriptions carry no `Co-Authored-By` trailers or "Generated with" footers, whether from people or from coding tools; the PR policy check rejects them. Explain the problem, the resulting behavior, and how you tested it. Include screenshots for visible UI changes and `Closes #123` when resolving an issue; GitHub closes linked issues when the PR merges into the default branch. Follow the PR template and [automation rules](.github/AUTOMATION.md) for changes without an issue.
 
 Maintainers should squash merge so the PR title becomes the release commit. Release behavior and required branch checks are documented in [.github/RELEASING.md](.github/RELEASING.md).
 

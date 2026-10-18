@@ -18,6 +18,7 @@ Closes #
 - [ ] I added screenshots or a short recording for visible UI changes.
 - [ ] I added or updated meaningful tests where behavior changed.
 - [ ] I removed logs, model files, recordings, secrets, and generated packages.
+- [ ] No `Co-Authored-By` trailers in the commits or this description.
 
 ## Release notes
 
