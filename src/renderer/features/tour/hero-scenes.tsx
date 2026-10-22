@@ -20,7 +20,7 @@ function Bars({ count = 7, className = '' }: { count?: number; className?: strin
 /** A small Inaudio window: the frame every scene builds on. */
 function Window({ className = '', children }: { className?: string; children: React.ReactNode }) {
   return (
-    <span className={`absolute block overflow-hidden rounded-[10px] border border-line bg-surface shadow-[0_12px_32px_rgb(47_91_234/0.18)] dark:shadow-[0_12px_32px_rgb(0_0_0/0.5)] ${className}`}>
+    <span className={`absolute block overflow-hidden rounded-[10px] border border-line bg-surface shadow-[0_8px_20px_rgb(47_91_234/0.1)] dark:shadow-[0_8px_20px_rgb(0_0_0/0.3)] ${className}`}>
       {children}
     </span>
   );
@@ -43,7 +43,7 @@ function Lines({ widths, faintLast = false }: { widths: string[]; faintLast?: bo
 export function WelcomeScene() {
   return (
     <span className="absolute inset-0 grid place-items-center">
-      <span className="hero-float grid size-24 place-items-center rounded-[22px] border border-line bg-surface text-accent shadow-[0_16px_40px_rgb(47_91_234/0.22)]">
+      <span className="hero-float grid size-24 place-items-center rounded-[22px] border border-line bg-surface text-accent shadow-[0_10px_24px_rgb(47_91_234/0.12)]">
         <LogoMark className="size-16" />
       </span>
       <Bars className="absolute bottom-7 left-14 opacity-60" />
@@ -57,7 +57,7 @@ export function MicrophoneScene() {
     <span className="absolute inset-0 grid place-items-center">
       <span className="hero-ring absolute size-24 rounded-full border-2 border-accent/40" />
       <span className="hero-ring absolute size-24 rounded-full border-2 border-accent/40" style={{ animationDelay: '0.9s' }} />
-      <span className="relative grid size-20 place-items-center rounded-full bg-accent text-on-accent shadow-[0_12px_30px_rgb(47_91_234/0.35)]">
+      <span className="relative grid size-20 place-items-center rounded-full bg-accent text-on-accent shadow-[0_8px_20px_rgb(47_91_234/0.18)]">
         <Mic className="size-8" />
       </span>
     </span>
@@ -81,7 +81,7 @@ export function ModelsScene() {
           <span className="hero-fill block h-full rounded-full bg-accent" />
         </span>
       </Window>
-      <span className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-surface px-3 py-1 text-[11px] font-semibold text-accent shadow-sm">On this computer · offline</span>
+      <span className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-surface px-3 py-1 text-[11px] font-semibold text-accent">On this computer · offline</span>
     </span>
   );
 }
@@ -102,7 +102,7 @@ export function LiveScene() {
         <Lines widths={['92%', '80%', '55%']} faintLast />
       </Window>
       <Bars className="absolute bottom-6 left-12 opacity-50" count={5} />
-      <span className="absolute right-12 bottom-8 grid size-9 place-items-center rounded-full bg-surface text-accent shadow-sm">
+      <span className="absolute right-12 bottom-8 grid size-9 place-items-center rounded-full bg-surface text-accent">
         <Captions className="size-4" />
       </span>
     </span>
@@ -113,7 +113,7 @@ export function OverlayScene() {
   return (
     <span className="absolute inset-0">
       <span className="absolute inset-x-10 top-7 bottom-0 rounded-t-[10px] border border-line bg-surface/70" />
-      <span className="hero-rise absolute bottom-8 left-1/2 flex h-10 -translate-x-1/2 items-center gap-2.5 rounded-full border border-line bg-surface px-4 shadow-[0_8px_22px_rgb(0_0_0/0.16)]">
+      <span className="hero-rise absolute bottom-8 left-1/2 flex h-10 -translate-x-1/2 items-center gap-2.5 rounded-full border border-line bg-surface px-4 shadow-[0_5px_14px_rgb(0_0_0/0.1)]">
         <span className="hero-dot size-2 rounded-full bg-record" />
         <span className="text-[12px] font-medium text-ink">Listening</span>
         <span className="flex h-3.5 items-end gap-0.5">
@@ -125,4 +125,3 @@ export function OverlayScene() {
     </span>
   );
 }
-

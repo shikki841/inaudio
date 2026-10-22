@@ -2,6 +2,7 @@ import { Check, Mic, Minus, X } from 'lucide-react';
 import { useState } from 'react';
 import { AppShell } from '@renderer/components/shell/app-shell';
 import { Billboard, StepDots } from '@renderer/components/ui/billboard';
+import { CloudShader } from '@renderer/components/ui/cloud-shader';
 import { Button } from '@renderer/components/ui/button';
 import type { LiveSource } from '@shared/domain/capture';
 import { Badge, Notice, Row } from '@renderer/components/ui/layout';
@@ -271,7 +272,7 @@ export function SetupFlow() {
         dismissible={false}
         label="Set up Inaudio"
         stepKey={current.id}
-        hero={current.hero}
+        hero={<CloudShader className="size-full">{current.hero}</CloudShader>}
         title={current.title}
         description={current.description}
         footer={

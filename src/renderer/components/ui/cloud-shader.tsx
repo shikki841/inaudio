@@ -47,9 +47,9 @@ void main() {
   float broad = cloudNoise(p + vec2(drift, 0.0));
   float detail = cloudNoise(p * 1.75 + vec2(-drift * 0.45, 13.7));
   float field = broad * 0.72 + detail * 0.28 + (1.0 - uv.y) * 0.045;
-  float coverage = smoothstep(0.49, 0.65, field);
-  float edgeLight = smoothstep(0.50, 0.69, field) * (1.0 - smoothstep(0.68, 0.79, field));
-  vec3 cloud = mix(u_cloud, u_accent, edgeLight * 0.10);
+  float coverage = smoothstep(0.42, 0.59, field);
+  float edgeLight = smoothstep(0.44, 0.63, field) * (1.0 - smoothstep(0.64, 0.76, field));
+  vec3 cloud = mix(u_cloud, u_accent, edgeLight * 0.18);
   gl_FragColor = vec4(mix(u_sky, cloud, coverage), 1.0);
 }`;
 
@@ -191,8 +191,8 @@ export function CloudShader({ className, children }: { className?: string; child
   return (
     <div className={cn('relative isolate overflow-hidden bg-accent-soft', className)}>
       <svg aria-hidden className={cn('pointer-events-none absolute inset-0 size-full', supported && 'hidden')} viewBox="0 0 600 220" preserveAspectRatio="xMidYMid slice">
-        <path d="M0 158c30-25 49-29 76-16 20-38 74-35 90 4 35-5 56 11 59 38H0Zm320-34c18-31 62-36 85-10 27-17 62-5 67 27 26-2 47 10 53 28H298c2-18 8-34 22-45Zm159 96c20-23 56-29 78-10 14-16 39-14 51 2v18H479Z" fill="var(--surface)" opacity=".65" />
-        <path d="M54 58c12-21 39-24 55-7 18-9 39 4 39 23H40c1-8 6-13 14-16Zm358 15c12-20 38-24 55-8 16-8 37 4 37 22H344c2-7 8-12 16-14Z" fill="var(--surface)" opacity=".36" />
+        <path d="M0 158c30-25 49-29 76-16 20-38 74-35 90 4 35-5 56 11 59 38H0Zm320-34c18-31 62-36 85-10 27-17 62-5 67 27 26-2 47 10 53 28H298c2-18 8-34 22-45Zm159 96c20-23 56-29 78-10 14-16 39-14 51 2v18H479Z" fill="var(--surface)" opacity=".82" />
+        <path d="M54 58c12-21 39-24 55-7 18-9 39 4 39 23H40c1-8 6-13 14-16Zm358 15c12-20 38-24 55-8 16-8 37 4 37 22H344c2-7 8-12 16-14Z" fill="var(--surface)" opacity=".58" />
       </svg>
       <canvas ref={canvasRef} aria-hidden className={cn('absolute inset-0 size-full', !supported && 'hidden')} />
       <div className="absolute inset-0 z-10">{children}</div>
