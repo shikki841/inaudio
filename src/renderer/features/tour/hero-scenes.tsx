@@ -1,4 +1,4 @@
-import { Captions, Mic, PictureInPicture2 } from 'lucide-react';
+import { Captions, Mic } from 'lucide-react';
 import { LogoMark } from '@renderer/components/brand/logo';
 
 /**
@@ -126,20 +126,3 @@ export function OverlayScene() {
   );
 }
 
-export function WhatsNewScene() {
-  return (
-    <span className="absolute inset-0">
-      <Window className="hero-float top-9 left-14 w-[240px]">
-        <Lines widths={['60%', '90%', '75%']} />
-        <span className="mx-3.5 mb-3.5 block h-5 w-2/5 rounded-[6px] bg-accent" />
-      </Window>
-      <Window className="hero-float-late top-16 right-14 w-[200px] rounded-[6px]">
-        <span className="flex h-[26px] items-center gap-1.5 border-b border-line px-2.5">
-          <span className="hero-dot size-[6px] rounded-full bg-record" />
-          <PictureInPicture2 className="size-3 text-faint" />
-        </span>
-        <Lines widths={['90%', '60%']} faintLast />
-      </Window>
-    </span>
-  );
-}

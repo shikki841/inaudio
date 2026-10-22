@@ -14,6 +14,7 @@ export function Drawer({
   title,
   description,
   headerActions,
+  hero,
   children,
   footer,
   className,
@@ -25,6 +26,8 @@ export function Drawer({
   description?: ReactNode;
   /** Buttons beside the close button. */
   headerActions?: ReactNode;
+  /** Optional decorative hero placed between the header and scrollable content. */
+  hero?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
@@ -59,6 +62,7 @@ export function Drawer({
               <X aria-hidden className="size-4" />
             </DialogPrimitive.Close>
           </header>
+          {hero && <div aria-hidden className="relative h-[140px] shrink-0 overflow-hidden border-b border-line bg-accent-soft">{hero}</div>}
           <div className="app-scroll-area min-h-0 flex-1 overflow-y-auto">{children}</div>
           {footer && <footer className="flex items-center gap-2 border-t border-line px-5 py-3">{footer}</footer>}
         </DialogPrimitive.Content>
