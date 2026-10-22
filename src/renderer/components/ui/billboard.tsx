@@ -13,6 +13,7 @@ export function Billboard({
   open,
   onOpenChange,
   hero,
+  heroClassName,
   stepKey,
   title,
   description,
@@ -25,6 +26,8 @@ export function Billboard({
   open: boolean;
   onOpenChange(open: boolean): void;
   hero: ReactNode;
+  /** Visual sizing for a specific billboard hero. */
+  heroClassName?: string;
   /** Changing it slides the hero and copy to the next step. */
   stepKey?: string | number;
   title: ReactNode;
@@ -49,14 +52,14 @@ export function Billboard({
           onPointerDownOutside={(event) => !dismissible && event.preventDefault()}
           onInteractOutside={(event) => !dismissible && event.preventDefault()}
           className={cn(
-            'billboard-content fixed top-1/2 left-1/2 z-50 flex max-h-[min(88vh,820px)] w-[min(600px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[16px] border border-line bg-surface text-ink outline-none',
-            'shadow-[0_24px_64px_rgb(0_0_0/0.28)] dark:shadow-[0_24px_64px_rgb(0_0_0/0.6)]',
+            'billboard-content fixed top-1/2 left-1/2 z-50 flex max-h-[min(88vh,820px)] w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[16px] border border-line bg-surface text-ink outline-none',
+            'shadow-[0_14px_36px_rgb(0_0_0/0.18)] dark:shadow-[0_14px_36px_rgb(0_0_0/0.42)]',
             className,
           )}
         >
           {/* "reduced" and "off" both mean no sliding; Radix and CSS handle the rest. */}
           <MotionConfig reducedMotion={motionSetting === 'full' ? 'user' : 'always'}>
-            <div aria-hidden className="relative h-[210px] shrink-0 overflow-hidden bg-accent-soft">
+            <div aria-hidden className={cn('relative h-[210px] shrink-0 overflow-hidden bg-accent-soft', heroClassName)}>
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={stepKey ?? 'hero'}

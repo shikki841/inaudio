@@ -10,7 +10,7 @@ import { api } from '@renderer/lib/api';
 import { useReleaseNotes, useSettings, useSystemStatus, useUpdateSettings, useUpdateStatus } from '@renderer/lib/queries';
 import { useDictation } from '@renderer/stores/dictation-store';
 import { useUi } from '@renderer/stores/ui-store';
-import { WhatsNewScene } from './hero-scenes';
+import { ReleaseNotesHero, WhatsNewHero } from './announcement-scenes';
 
 export function releaseDate(note: ReleaseNote): string {
   const date = new Date(note.publishedAt);
@@ -74,6 +74,8 @@ export function ReleaseNotesDrawer() {
       onOpenChange={setOpen}
       title="Release notes"
       description="Live from GitHub Releases, shikki841/inaudio."
+      className="w-[min(440px,calc(100vw-12px))] shadow-[-6px_0_20px_rgb(0_0_0/0.12)] dark:shadow-[-6px_0_20px_rgb(0_0_0/0.36)]"
+      hero={<ReleaseNotesHero />}
       headerActions={
         <button
           type="button"
@@ -185,7 +187,9 @@ export function WhatsNewBillboard() {
       open={open}
       onOpenChange={close}
       label={`What's new in Inaudio ${version}`}
-      hero={<WhatsNewScene />}
+      className="w-[min(520px,calc(100vw-24px))] shadow-[0_14px_36px_rgb(0_0_0/0.18)] dark:shadow-[0_14px_36px_rgb(0_0_0/0.42)]"
+      heroClassName="h-[168px]"
+      hero={<WhatsNewHero />}
       title={
         <span className="grid gap-2">
           <span className="w-max rounded-[6px] bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">{tag}</span>
