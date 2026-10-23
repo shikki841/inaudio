@@ -8,7 +8,7 @@ const prepackaged = path.resolve('out', `Inaudio-${platform}-${arch}`);
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const run = (command, args) => {
   if (process.platform === 'win32') {
-    execFileSync('cmd.exe', ['/d', '/s', '/c', command, ...args], { stdio: 'inherit' });
+    execFileSync(command, args, { stdio: 'inherit', shell: command.endsWith('.cmd') });
     return;
   }
   execFileSync(command, args, {
