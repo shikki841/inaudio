@@ -187,7 +187,7 @@ export function WhatsNewBillboard() {
       open={open}
       onOpenChange={close}
       label={`What's new in Inaudio ${version}`}
-      className="w-[min(520px,calc(100vw-24px))] shadow-[0_14px_36px_rgb(0_0_0/0.18)] dark:shadow-[0_14px_36px_rgb(0_0_0/0.42)]"
+      className="w-[min(460px,calc(100vw-24px))] shadow-[0_14px_36px_rgb(0_0_0/0.18)] dark:shadow-[0_14px_36px_rgb(0_0_0/0.42)]"
       heroClassName="h-[168px]"
       hero={<WhatsNewHero />}
       title={

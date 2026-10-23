@@ -62,7 +62,7 @@
   FunctionEnd
 !macroend
 
-; Unpacks a frame set and starts the page: white ground, hero across the top. Inside a pre function.
+; Unpacks a cloud frame set and starts the page across the top. Inside a pre function.
 !macro INAUDIO_PAGE_BEGIN UN SET COUNT
   InitPluginsDir
   SetOutPath "$PLUGINSDIR\inaudio\${SET}"
