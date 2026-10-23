@@ -14,8 +14,9 @@ type UpdateEvents = {
 
 /** Main-process owner for signed, HTTPS desktop updates. */
 export class UpdaterService extends EventEmitter<UpdateEvents> {
+  private readonly flatpak = Boolean(process.env.FLATPAK_ID);
   private status: UpdateStatus = {
-    state: app.isPackaged ? 'idle' : 'unavailable',
+    state: this.flatpak ? 'managed' : app.isPackaged ? 'idle' : 'unavailable',
     currentVersion: app.getVersion(),
     canInstall: false,
   };
@@ -29,11 +30,13 @@ export class UpdaterService extends EventEmitter<UpdateEvents> {
   ) {
     super();
     this.settings = settings;
-    autoUpdater.autoInstallOnAppQuit = false;
-    autoUpdater.autoDownload = settings.downloadAutomatically;
-    autoUpdater.allowPrerelease = false;
-    // Releases ship a full NSIS installer; a web-installer payload is never expected.
-    autoUpdater.disableWebInstaller = true;
+    if (!this.flatpak) {
+      autoUpdater.autoInstallOnAppQuit = false;
+      autoUpdater.autoDownload = settings.downloadAutomatically;
+      autoUpdater.allowPrerelease = false;
+      // Releases ship a full NSIS installer; a web-installer payload is never expected.
+      autoUpdater.disableWebInstaller = true;
+    }
     // The feed and the download cache both come from resources/app-update.yml, which
     // Forge copies in (forge.config.ts extraResource).
     autoUpdater.logger = {
@@ -42,7 +45,7 @@ export class UpdaterService extends EventEmitter<UpdateEvents> {
       error: (...args: unknown[]) => console.error('[updater]', ...args),
       debug: (...args: unknown[]) => console.debug('[updater]', ...args),
     };
-    this.installationId();
+    if (!this.flatpak) this.installationId();
     this.bindEvents();
   }
 
@@ -52,7 +55,7 @@ export class UpdaterService extends EventEmitter<UpdateEvents> {
 
   applySettings(settings: Settings['updates']): void {
     this.settings = settings;
-    autoUpdater.autoDownload = settings.downloadAutomatically;
+    if (!this.flatpak) autoUpdater.autoDownload = settings.downloadAutomatically;
   }
 
   setBeforeInstall(callback: () => void): void {
@@ -60,6 +63,7 @@ export class UpdaterService extends EventEmitter<UpdateEvents> {
   }
 
   async check(): Promise<UpdateStatus> {
+    if (this.flatpak) return this.status;
     if (!app.isPackaged) return this.update({ state: 'unavailable', canInstall: false });
     if (this.checking) return this.status;
     if (!fs.existsSync(path.join(process.resourcesPath, 'app-update.yml'))) {
@@ -82,6 +86,7 @@ export class UpdaterService extends EventEmitter<UpdateEvents> {
   }
 
   async download(): Promise<UpdateStatus> {
+    if (this.flatpak) return this.status;
     if (!app.isPackaged) return this.update({ state: 'unavailable', canInstall: false });
     try {
       await autoUpdater.downloadUpdate();
@@ -100,7 +105,7 @@ export class UpdaterService extends EventEmitter<UpdateEvents> {
   }
 
   start(): void {
-    if (app.isPackaged && this.settings.checkAutomatically) {
+    if (!this.flatpak && app.isPackaged && this.settings.checkAutomatically) {
       setTimeout(() => void this.check(), 10_000).unref();
     }
   }

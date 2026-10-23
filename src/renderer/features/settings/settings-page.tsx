@@ -35,7 +35,7 @@ const ACCENT_COLORS = {
 /** Three words for the three ways a configured accelerator can land. */
 const SHORTCUT_NOTE: Record<ShortcutStatus, string | null> = {
   registered: null,
-  unavailable: 'In use by another app',
+  unavailable: 'Unavailable in this desktop session.',
   off: null,
 };
 

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const script = fileURLToPath(new URL('./release-assets.mjs', import.meta.url));
 const extensions = process.platform === 'win32' ? ['.exe', '.nupkg'] : process.platform === 'darwin' ? ['.zip'] : ['.deb', '.rpm'];
+const builderExtensions = process.platform === 'win32' ? ['.exe', '.blockmap', '.yml'] : process.platform === 'darwin' ? ['.zip', '.blockmap', '.yml'] : ['.AppImage', '.deb', '.rpm', '.flatpak', '.blockmap', '.yml'];
 
 function fixture(run) {
   const root = path.resolve(`.release-test-${randomUUID()}`);
@@ -49,6 +50,43 @@ test('fails if electron-builder output has no update manifest', () => {
     const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Missing update manifest/);
+  });
+});
+
+test('collects the Flatpak bundle and includes it in the Linux checksum manifest', () => {
+  if (process.platform !== 'linux') return;
+  fixture((root) => {
+    const builder = path.join(root, 'out', 'builder');
+    mkdirSync(builder, { recursive: true });
+    for (const extension of builderExtensions) {
+      const name = extension === '.yml' ? 'latest-linux.yml' : `installer${extension}`;
+      writeFileSync(path.join(builder, name), `bytes for ${extension}`);
+    }
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    const directory = path.join(root, 'release-assets');
+    const bundle = readdirSync(directory).find((name) => name.endsWith('.flatpak'));
+    assert.ok(bundle, 'Flatpak bundle should be copied into release-assets');
+    const manifest = readdirSync(directory).find((name) => name.startsWith('SHA256SUMS'));
+    const lines = readFileSync(path.join(directory, manifest), 'utf8').trim().split('\n');
+    const entry = lines.find((line) => line.endsWith(`  ${bundle}`));
+    assert.ok(entry, 'Flatpak bundle should have a checksum entry');
+    assert.equal(createHash('sha256').update(readFileSync(path.join(directory, bundle))).digest('hex'), entry.split('  ')[0]);
+  });
+});
+
+test('fails if electron-builder output has no Flatpak bundle', () => {
+  if (process.platform !== 'linux') return;
+  fixture((root) => {
+    const builder = path.join(root, 'out', 'builder');
+    mkdirSync(builder, { recursive: true });
+    for (const extension of builderExtensions.filter((value) => value !== '.flatpak')) {
+      const name = extension === '.yml' ? 'latest-linux.yml' : `installer${extension}`;
+      writeFileSync(path.join(builder, name), `bytes for ${extension}`);
+    }
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Missing \.flatpak installer/);
   });
 });
 

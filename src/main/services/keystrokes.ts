@@ -69,6 +69,9 @@ export function resolveKeyCommand(key: 'paste' | 'copy'): KeyCommand | null {
         method: 'SendKeys (PowerShell)',
       };
     default: {
+      // Flatpak cannot execute host input helpers such as xdotool or wtype. Keep paste and
+      // selection-copy unavailable there rather than advertising a helper the sandbox cannot use.
+      if (process.env.FLATPAK_ID) return null;
       if (process.env.WAYLAND_DISPLAY) {
         const wtype = findOnPath('wtype');
         if (wtype) return { file: wtype, args: ['-M', 'ctrl', letter, '-m', 'ctrl'], method: 'wtype' };

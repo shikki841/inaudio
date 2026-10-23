@@ -38,7 +38,7 @@
 - Read text or your clipboard aloud with on-device speech synthesis.
 - Manage speech models, microphone settings, and playback in one desktop app.
 
-Download a model once, then run inference locally. Model downloads need an internet connection. Desktop packages target Windows, macOS, and Linux; permissions and text insertion vary by platform. Releases are distributed through electron-builder update manifests; CI artifacts are currently unsigned and development builds do not contact the update feed.
+Download a model once, then run inference locally. Model downloads need an internet connection. Desktop packages target Windows, macOS, and Linux, including a single-file Flatpak bundle; permissions and text insertion vary by platform. Flatpak updates are handled by Flatpak or by installing a newer release bundle. Flatpak cannot type into other apps, and desktop-wide shortcuts depend on the host session and may be unavailable. Other supported packages use electron-builder update manifests. CI artifacts are currently unsigned and development builds do not contact the update feed.
 
 Speech-to-text includes NVIDIA Nemotron ASR Streaming, an English cache-aware streaming model with a 560 ms latency/accuracy profile. It runs through sherpa-onnx on the CPU after its verified model archive is downloaded; the model remains subject to the [NVIDIA Open Model License](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/).
 

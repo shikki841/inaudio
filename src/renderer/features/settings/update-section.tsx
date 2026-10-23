@@ -78,6 +78,15 @@ function Hero({ icon, title, detail, trailing, children, tone = 'neutral' }: { i
 function UpdateHero({ status, actions }: { status: UpdateStatus; actions: Actions }) {
   const next = status.availableVersion;
   const current = status.currentVersion;
+  if (status.state === 'managed') {
+    return (
+      <Hero
+        icon={<LogoMark className="size-8" />}
+        title={`Inaudio ${current}`}
+        detail="Updates are handled by Flatpak. Install them through your software center or from a newer Inaudio Flatpak bundle."
+      />
+    );
+  }
   if (status.state === 'downloading') {
     const progress = status.progress ?? 0;
     return (
@@ -224,53 +233,63 @@ export function UpdateSection({
 }) {
   const showWhatsNew = useUi((s) => s.setWhatsNew);
   const openNotes = useUi((s) => s.setReleaseNotes);
+  const managedByFlatpak = status?.state === 'managed';
   return (
     <Section id="settings-updates">
-      {updates.checkAutomatically && status && (
+      {managedByFlatpak ? (
         <div className="grid gap-5 pb-5">
           <UpdateHero status={status} actions={actions} />
           <LiveNotes status={status} />
         </div>
+      ) : (
+        <>
+          {updates.checkAutomatically && status && (
+            <div className="grid gap-5 pb-5">
+              <UpdateHero status={status} actions={actions} />
+              <LiveNotes status={status} />
+            </div>
+          )}
+          {!updates.checkAutomatically && (
+            <div className="pb-4">
+              <Notice tone="neutral">Automatic updates are off. Check now and then, or turn them back on below.</Notice>
+            </div>
+          )}
+          <Row label="Automatic updates" description="Check for updates on their own and show progress here and in the title bar.">
+            <Switch
+              aria-label="Check for updates automatically"
+              checked={updates.checkAutomatically}
+              onCheckedChange={(checkAutomatically) => onChange({ checkAutomatically })}
+            />
+          </Row>
+          <Row label="Background downloads" description="Download signed updates without interrupting your work.">
+            <Switch
+              aria-label="Download updates automatically"
+              checked={updates.downloadAutomatically}
+              onCheckedChange={(downloadAutomatically) => onChange({ downloadAutomatically })}
+            />
+          </Row>
+          <Row label="Last checked" description={when(status?.checkedAt)}>
+            {status?.state === 'downloaded' && !updates.checkAutomatically ? (
+              <Button size="sm" onClick={() => actions.install.mutate()} disabled={actions.install.isPending}>
+                <RotateCw /> Restart to update
+              </Button>
+            ) : status?.state === 'available' && !updates.checkAutomatically ? (
+              <Button size="sm" onClick={() => actions.download.mutate()} disabled={actions.download.isPending}>
+                <Download /> Download {status.availableVersion}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => actions.check.mutate()}
+                disabled={actions.check.isPending || status?.state === 'unavailable' || status?.state === 'checking' || status?.state === 'downloading'}
+              >
+                <RefreshCw /> Check now
+              </Button>
+            )}
+          </Row>
+        </>
       )}
-      {!updates.checkAutomatically && (
-        <div className="pb-4">
-          <Notice tone="neutral">Automatic updates are off. Check now and then, or turn them back on below.</Notice>
-        </div>
-      )}
-      <Row label="Automatic updates" description="Check for updates on their own and show progress here and in the title bar.">
-        <Switch
-          aria-label="Check for updates automatically"
-          checked={updates.checkAutomatically}
-          onCheckedChange={(checkAutomatically) => onChange({ checkAutomatically })}
-        />
-      </Row>
-      <Row label="Background downloads" description="Download signed updates without interrupting your work.">
-        <Switch
-          aria-label="Download updates automatically"
-          checked={updates.downloadAutomatically}
-          onCheckedChange={(downloadAutomatically) => onChange({ downloadAutomatically })}
-        />
-      </Row>
-      <Row label="Last checked" description={when(status?.checkedAt)}>
-        {status?.state === 'downloaded' && !updates.checkAutomatically ? (
-          <Button size="sm" onClick={() => actions.install.mutate()} disabled={actions.install.isPending}>
-            <RotateCw /> Restart to update
-          </Button>
-        ) : status?.state === 'available' && !updates.checkAutomatically ? (
-          <Button size="sm" onClick={() => actions.download.mutate()} disabled={actions.download.isPending}>
-            <Download /> Download {status.availableVersion}
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => actions.check.mutate()}
-            disabled={actions.check.isPending || status?.state === 'unavailable' || status?.state === 'checking' || status?.state === 'downloading'}
-          >
-            <RefreshCw /> Check now
-          </Button>
-        )}
-      </Row>
       <Row
         id="settings-whats-new"
         label="Show what’s new after an update"

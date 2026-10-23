@@ -36,7 +36,7 @@ jobs:
   build:
     name: Package (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -60,7 +60,10 @@ jobs:
           cache: npm
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y rpm
+        run: sudo apt-get update && sudo apt-get install -y rpm flatpak flatpak-builder fuse3 dbus-x11 xvfb
+      - name: Add Flatpak runtime remote
+        if: runner.os == 'Linux'
+        run: flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
       - run: npm ci
       - name: Apply release version
         if: inputs.version != ''
@@ -81,7 +84,38 @@ jobs:
           iconutil -c icns assets/icons/icon.iconset -o assets/icons/icon.icns
           rm -r assets/icons/icon.iconset
       - name: Build release artifacts
+        if: runner.os != 'Linux'
         run: npm run package:release
+      - name: Build Linux release artifacts
+        if: runner.os == 'Linux'
+        run: dbus-run-session -- bash -c 'export DBUS_SYSTEM_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS"; npm run package:release'
+      - name: Install Flatpak bundle for smoke test
+        if: matrix.platform == 'linux-x64'
+        run: |
+          bundle=$(find out/builder -maxdepth 1 -type f -name '*.flatpak' -print -quit)
+          test -n "$bundle"
+          flatpak install --user --assumeyes --noninteractive --bundle "$bundle"
+      - name: Inspect Flatpak metadata and launch
+        if: matrix.platform == 'linux-x64'
+        run: |
+          metadata=$(flatpak info --user --show-metadata app.inaudio.desktop)
+          grep -F 'runtime=org.freedesktop.Platform/x86_64/26.08' <<< "$metadata"
+          grep -F 'wayland' <<< "$metadata"
+          grep -F 'x11' <<< "$metadata"
+          grep -F 'pulseaudio' <<< "$metadata"
+          grep -F 'network' <<< "$metadata"
+          if ! awk -F= '$1 == "filesystems" { count = split($2, grants, /[;,]/); for (i = 1; i <= count; i++) if (grants[i] == "home") exit 1 }' <<< "$metadata"; then
+            echo "Flatpak metadata grants broad home-directory access."
+            exit 1
+          fi
+          set +e
+          timeout --signal=TERM 25s dbus-run-session -- xvfb-run -a flatpak run --user app.inaudio.desktop --disable-gpu
+          result=$?
+          set -e
+          if [[ "$result" -ne 124 ]]; then
+            echo "Flatpak did not remain running during the smoke test (exit $result)."
+            exit 1
+          fi
       - name: Collect installers and checksums
         run: node scripts/release-assets.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

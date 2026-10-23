@@ -54,7 +54,9 @@ export class TextInserter {
         available: false,
         reason:
           process.platform === 'linux'
-            ? 'Install xdotool (X11) or wtype (Wayland) to paste into other apps.'
+            ? process.env.FLATPAK_ID
+              ? 'Flatpak cannot type into other apps. Copy the transcript and paste it yourself.'
+              : 'Install xdotool (X11) or wtype (Wayland) to paste into other apps.'
             : 'No paste helper found.',
       };
     }

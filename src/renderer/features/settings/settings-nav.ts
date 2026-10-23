@@ -38,7 +38,7 @@ export const CATEGORY_GROUPS: { label: string; items: CategoryInfo[] }[] = [
       { id: 'dictation', label: 'Dictation', description: 'What happens to what you say.', icon: Mic },
       { id: 'quality', label: 'Transcript quality', description: 'How finished text is cleaned up. Everything runs on this computer.', icon: SpellCheck },
       { id: 'read-aloud', label: 'Read Aloud', description: 'Hear selected or typed text in a local Kokoro voice.', icon: Volume2 },
-      { id: 'shortcuts', label: 'Shortcuts', description: 'Accelerators work from any app while Inaudio is running.', icon: Keyboard },
+  { id: 'shortcuts', label: 'Shortcuts', description: 'Accelerators are available when supported by the desktop session.', icon: Keyboard },
     ],
   },
   {
@@ -53,7 +53,7 @@ export const CATEGORY_GROUPS: { label: string; items: CategoryInfo[] }[] = [
     label: 'System',
     items: [
       { id: 'performance', label: 'Performance', description: 'How hard the speech engine works and when it rests.', icon: Cpu },
-      { id: 'updates', label: 'Updates', description: 'Signed updates from GitHub Releases.', icon: Download },
+      { id: 'updates', label: 'Updates', description: 'How updates are installed on this computer.', icon: Download },
       { id: 'privacy', label: 'Privacy & data', description: 'What Inaudio keeps and what appears in screen captures.', icon: ShieldCheck },
       { id: 'about', label: 'About', description: 'Version, data folder and engine.', icon: Info },
     ],

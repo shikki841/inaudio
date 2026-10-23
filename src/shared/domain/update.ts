@@ -1,6 +1,7 @@
 import type { ReleaseNote } from '../update/release-markdown';
 
 export type UpdateState =
+  | 'managed'
   | 'unavailable'
   | 'idle'
   | 'checking'

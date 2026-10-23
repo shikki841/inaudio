@@ -49,3 +49,17 @@ linux:
   icon: assets/icons/icon.png
   synopsis: Offline desktop voice input
   description: Local, offline desktop voice input with on-device speech recognition and speech synthesis.
+flatpak:
+  runtime: org.freedesktop.Platform
+  runtimeVersion: '26.08'
+  baseVersion: '26.08'
+  branch: stable
+  finishArgs:
+    - --socket=wayland
+    - --socket=x11
+    - --share=ipc
+    - --device=dri
+    - --socket=pulseaudio
+    - --share=network
+    - --talk-name=org.freedesktop.Notifications
+    - --talk-name=org.kde.StatusNotifierWatcher
