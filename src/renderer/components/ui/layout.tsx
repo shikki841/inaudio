@@ -15,6 +15,18 @@ export function PageHeader({ title, description, actions }: { title: string; des
   );
 }
 
+/** The quiet uppercase heading over a page section, with an optional control on the right. */
+export function SectionHeading({ children, action, id }: { children: ReactNode; action?: ReactNode; id?: string }) {
+  return (
+    <div className="flex min-h-8 items-center justify-between gap-3">
+      <h2 id={id} className="m-0 text-sm font-semibold tracking-wide text-faint uppercase">
+        {children}
+      </h2>
+      {action && <div className="flex items-center gap-1.5">{action}</div>}
+    </div>
+  );
+}
+
 export function Separator({ className }: { className?: string }) {
   return <SeparatorPrimitive.Root className={cn('h-px w-full bg-line', className)} />;
 }
@@ -52,7 +64,7 @@ export function Kbd({ keys }: { keys: string[] }) {
   return (
     <span className="inline-flex items-center gap-1">
       {keys.map((key, i) => (
-        <kbd key={`${key}-${i}`} className="min-w-6 rounded-md bg-sunken px-1.5 py-0.5 text-center font-mono text-xs text-ink shadow-[inset_0_-1px_0_var(--line-strong)]">
+        <kbd key={`${key}-${i}`} className="min-w-6 rounded-[6px] bg-sunken px-1.5 py-0.5 text-center font-mono text-xs text-ink shadow-[inset_0_-1px_0_var(--line-strong)]">
           {key}
         </kbd>
       ))}
@@ -71,7 +83,7 @@ const TONES: Record<Tone, string> = {
 };
 
 export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
-  return <span className={cn('inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-xs font-medium', TONES[tone], className)}>{children}</span>;
+  return <span className={cn('inline-flex h-6 items-center gap-1.5 rounded-[6px] px-2 text-xs font-medium', TONES[tone], className)}>{children}</span>;
 }
 
 export function StatusDot({ tone }: { tone: Tone }) {
@@ -81,7 +93,7 @@ export function StatusDot({ tone }: { tone: Tone }) {
 
 export function Notice({ tone = 'warning', children, action }: { tone?: Tone; children: ReactNode; action?: ReactNode }) {
   return (
-    <div role="status" className={cn('flex items-center justify-between gap-4 rounded-lg px-4 py-3 text-sm', TONES[tone])}>
+    <div role="status" className={cn('flex items-center justify-between gap-4 rounded-[6px] px-4 py-3 text-sm', TONES[tone])}>
       <div>{children}</div>
       {action}
     </div>

@@ -50,6 +50,7 @@ export const IPC = {
   historyClear: 'history:clear',
   historyUpdate: 'history:update',
   historyExport: 'history:export',
+  historyStats: 'history:stats',
   systemOpenSoundSettings: 'system:open-sound-settings',
   companionGet: 'companion:get',
   companionSelect: 'companion:select',

@@ -20,7 +20,7 @@ export function ConsentDialog({
     <AlertDialogPrimitive.Root open={open} onOpenChange={(next) => !next && onCancel()}>
       <AlertDialogPrimitive.Portal>
         <AlertDialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/40" />
-        <AlertDialogPrimitive.Content className="fixed top-1/2 left-1/2 z-50 grid w-[440px] -translate-x-1/2 -translate-y-1/2 gap-4 overscroll-contain rounded-xl bg-surface p-6">
+        <AlertDialogPrimitive.Content className="fixed top-1/2 left-1/2 z-50 grid w-[440px] -translate-x-1/2 -translate-y-1/2 gap-4 overscroll-contain rounded-[6px] bg-surface p-6">
           <AlertDialogPrimitive.Title className="text-base font-semibold text-balance">Record system audio?</AlertDialogPrimitive.Title>
           <AlertDialogPrimitive.Description className="text-sm leading-relaxed text-muted">
             Live transcript records everything this computer plays, including other people on a call. Make sure everyone

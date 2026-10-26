@@ -90,6 +90,7 @@ const api: InaudioApi = {
     clear: () => ipcRenderer.invoke(IPC.historyClear),
     update: (id, patch) => ipcRenderer.invoke(IPC.historyUpdate, { id, patch }),
     export: (input) => ipcRenderer.invoke(IPC.historyExport, input),
+    stats: (input) => ipcRenderer.invoke(IPC.historyStats, input),
   },
   companions: {
     get: () => ipcRenderer.invoke(IPC.companionGet),

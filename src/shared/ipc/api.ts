@@ -1,5 +1,6 @@
 import type { LiveChunk, LiveCommand, LivePreview, LiveReport, LiveStartInput, LiveState } from '../domain/capture';
 import type { ExportFormat, HistoryKind, HistoryPage, HistoryQuery, HistoryUpdate, Transcript } from '../domain/history';
+import type { Activity, ActivityKind, ActivityRange } from '../history/stats';
 import type { ModelId, ModelStatus, VoiceId } from '../domain/models';
 import type { Settings, SettingsPatch } from '../domain/settings';
 import type {
@@ -130,6 +131,7 @@ export interface InaudioApi {
     /** The pill is being dragged by its handle: pointer position in screen DIPs. */
     drag(phase: 'start' | 'move' | 'end', x: number, y: number): void;
   };
+  /** App window only: the other windows never type text or write the clipboard. */
   text: {
     insert(text: string): Promise<void>;
     copy(text: string): Promise<void>;
@@ -157,6 +159,8 @@ export interface InaudioApi {
      * or every transcript of a view. Resolves with how many were written, 0 when cancelled.
      */
     export(input: { ids?: string[]; kind?: HistoryKind; format: ExportFormat }): Promise<number>;
+    /** Activity numbers for a page, counted in the main process. App window only. */
+    stats(input: { kind: ActivityKind; days: ActivityRange }): Promise<Activity>;
   };
   companions: {
     get(): Promise<CompanionSnapshot>;

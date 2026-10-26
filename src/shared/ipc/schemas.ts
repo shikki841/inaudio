@@ -10,6 +10,7 @@ import {
   MAX_SESSION_TRANSCRIPT_CHARS,
 } from '../domain/history';
 import { deviceIdSchema, settingsPatchSchema } from '../domain/settings';
+import { ACTIVITY_KINDS, ACTIVITY_RANGES } from '../history/stats';
 import { COMPANION_IDS } from '../domain/companion';
 import { MAX_READ_ALOUD_CHARS } from '../domain/read-aloud';
 import type { AppMenuCommand, LiveWindowAction, WindowAction } from '../domain/system';
@@ -189,6 +190,13 @@ export const schemas = {
   historyId: z.string().uuid(),
   releaseNotes: z.object({ force: z.boolean() }).strict(),
   historyUpdate: z.object({ id: z.string().uuid(), patch: historyUpdateSchema }).strict(),
+  // Counted in main; the app window gets numbers back, never transcript text.
+  historyStats: z
+    .object({
+      kind: z.enum(ACTIVITY_KINDS),
+      days: z.union([z.literal(ACTIVITY_RANGES[0]), z.literal(ACTIVITY_RANGES[1])]),
+    })
+    .strict(),
   // Ids, or a whole view. Never a path: the user picks the file in the native save dialog.
   historyExport: z
     .object({

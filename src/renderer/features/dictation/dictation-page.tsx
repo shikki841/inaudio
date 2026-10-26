@@ -1,32 +1,21 @@
-import { Copy, Loader2, Mic, Square, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Mic, Square, X } from 'lucide-react';
 import type { Transcript } from '@shared/domain/history';
 import { MODEL_CATALOG } from '@shared/domain/models';
-import { LevelWave, RecentItem, Stat, WeekBars } from '@renderer/components/ui/activity';
+import { ActivityStats, CopyButton, LevelWave, RecentItem } from '@renderer/components/ui/activity';
 import { Button } from '@renderer/components/ui/button';
-import { IconButton } from '@renderer/components/ui/icon-button';
-import { Badge, Kbd, Notice, PageHeader } from '@renderer/components/ui/layout';
+import { EmptyState } from '@renderer/components/ui/empty-state';
+import { Badge, Kbd, Notice, PageHeader, SectionHeading } from '@renderer/components/ui/layout';
+import { Spinner } from '@renderer/components/ui/spinner';
 import { useMediaDevices } from '@renderer/features/audio/use-devices';
 import { ReadAloudButton } from '@renderer/features/read-aloud/read-aloud-controls';
-import { api } from '@renderer/lib/api';
 import { cn } from '@renderer/lib/cn';
 import { formatAccelerator, formatDuration, groupByDay } from '@renderer/lib/format';
 import { useHistory, useSettings, useSystemStatus } from '@renderer/lib/queries';
-import { weekOf } from '@renderer/lib/week';
+import { useElapsed } from '@renderer/lib/use-elapsed';
 import { useDictation } from '@renderer/stores/dictation-store';
 import { useUi } from '@renderer/stores/ui-store';
 
 const RECENT = 4;
-
-function useElapsed(startedAt: number | null) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    if (!startedAt) return;
-    const id = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(id);
-  }, [startedAt]);
-  return startedAt ? now - startedAt : 0;
-}
 
 /** The input level changes ~20 times a second, so only these two pieces subscribe to it. */
 function LevelRing() {
@@ -60,8 +49,7 @@ export function DictationPage() {
   const elapsed = useElapsed(startedAt);
   const microphones = useMediaDevices('audioinput');
   const saving = settings?.dictation.saveHistory !== false;
-  const { data: history } = useHistory({ kind: 'dictation', limit: 500, offset: 0 });
-  const week = useMemo(() => weekOf(history?.items ?? []), [history]);
+  const { data: history } = useHistory({ kind: 'dictation', limit: RECENT, offset: 0 });
   if (!settings || !status) return null;
 
   const stt = MODEL_CATALOG[settings.stt.modelId];
@@ -70,11 +58,12 @@ export function DictationPage() {
   const busy = phase === 'transcribing' || phase === 'inserting';
   const keys = formatAccelerator(settings.dictation.shortcut, status.platform);
   const microphone = microphones.find((device) => device.deviceId === settings.audio.inputDeviceId)?.label.replace(/^Default - /, '');
-  const recent = (history?.items ?? []).slice(0, RECENT);
+  const recent = history?.items ?? [];
   const newest = recent[0];
   const fresh = (item: Transcript) => item === newest && !!last && Date.now() - item.createdAt < 120_000;
 
   const label = listening ? 'Listening' : busy ? 'Transcribing' : phase === 'error' ? 'Needs attention' : 'Ready';
+  const shortcutHint = `Press ${keys.join(' ')} in any app`;
 
   return (
     <div className="grid gap-6">
@@ -100,12 +89,13 @@ export function DictationPage() {
         </Notice>
       )}
 
-      <section aria-live="polite" className="grid grid-cols-[auto_1fr] items-center gap-7 rounded-[16px] border border-line bg-sunken px-7 py-6">
+      <section aria-label="Dictation" className="grid grid-cols-[auto_1fr] items-center gap-7 border-b border-line pb-6">
         <button
           type="button"
           onClick={() => void toggle()}
           disabled={!installed || busy}
           aria-pressed={listening}
+          aria-busy={busy || undefined}
           aria-label={listening ? 'Stop dictation' : 'Start dictation'}
           className={cn(
             'relative grid size-24 place-items-center rounded-full outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:opacity-40',
@@ -114,11 +104,11 @@ export function DictationPage() {
         >
           {listening && <LevelRing />}
           <span className="relative">
-            {listening ? <Square className="size-8 fill-current" /> : busy ? <Loader2 className="size-9 animate-spin" /> : <Mic className="size-9" />}
+            {listening ? <Square aria-hidden className="size-8 fill-current" /> : busy ? <Spinner className="size-9" /> : <Mic aria-hidden className="size-9" />}
           </span>
         </button>
         <div className="grid min-w-0 gap-3">
-          <div className="flex items-baseline gap-3">
+          <div aria-live="polite" className="flex min-h-8 items-baseline gap-3">
             <span className="text-xl font-semibold">{label}</span>
             {listening && <span className="font-mono text-sm text-muted tabular-nums">{formatDuration(elapsed)}</span>}
             <span className="flex-1" />
@@ -149,27 +139,24 @@ export function DictationPage() {
 
       {saving ? (
         <>
-          <section aria-label="The last seven days" className="grid grid-cols-[1.3fr_1fr_1fr] gap-3">
-            <Stat label="Words this week" value={week.words.toLocaleString()}>
-              <WeekBars days={week.days} />
-            </Stat>
-            <Stat label="Dictations" value={week.takes.toLocaleString()} />
-            <Stat label="Speaking pace" value={week.pace ? week.pace.toLocaleString() : '–'} unit={week.pace ? 'words a minute' : undefined} />
-          </section>
+          <ActivityStats kind="dictation" />
 
           <section className="grid gap-1">
             {recent.length ? (
               groupByDay(recent).map((group, index) => (
                 <div key={group.day} className="grid gap-1">
-                  <div className="flex min-h-8 items-center justify-between">
-                    <h2 className="m-0 text-sm font-semibold tracking-wide text-faint uppercase">{group.day}</h2>
-                    {index === 0 && (
-                      <Button variant="ghost" size="sm" onClick={() => navigate('history')}>
-                        All dictations
-                      </Button>
-                    )}
-                  </div>
-                  <ul className="m-0 grid list-none gap-0.5 p-0">
+                  <SectionHeading
+                    action={
+                      index === 0 && (
+                        <Button variant="ghost" size="sm" onClick={() => navigate('history')}>
+                          All dictations
+                        </Button>
+                      )
+                    }
+                  >
+                    {group.day}
+                  </SectionHeading>
+                  <ul className="m-0 grid list-none gap-1 p-0">
                     {group.items.map((item) => (
                       <RecentItem
                         key={item.id}
@@ -181,33 +168,47 @@ export function DictationPage() {
                   </ul>
                 </div>
               ))
-            ) : (
+            ) : history ? (
               <>
-                <h2 className="m-0 text-sm font-semibold tracking-wide text-faint uppercase">Recent</h2>
-                <p className="m-0 px-3.5 py-3 text-base text-faint">Your words will appear here.</p>
+                <SectionHeading>Recent</SectionHeading>
+                <EmptyState
+                  size="sm"
+                  title="No dictations yet"
+                  description={`${shortcutHint} and your words appear here.`}
+                  action={
+                    <Button variant="ghost" size="sm" onClick={() => navigate('history')}>
+                      Open History
+                    </Button>
+                  }
+                />
               </>
-            )}
+            ) : null}
           </section>
         </>
       ) : (
         <section className="grid gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="m-0 text-sm font-semibold tracking-wide text-faint uppercase">Last transcript</h2>
-            <div className="flex items-center gap-2">
-              {last && <Badge>{(last.inferenceMs / 1000).toFixed(2)} s on device</Badge>}
-              {lastText && (
-                <>
-                  <ReadAloudButton id="dictation-last" title="Last transcript" text={lastText} />
-                  <IconButton label="Copy transcript" size="icon-sm" onClick={() => void api.text.copy(lastText)}>
-                    <Copy />
-                  </IconButton>
-                </>
-              )}
-            </div>
-          </div>
-          <p data-selectable className={cn('m-0 min-h-16 text-base leading-relaxed whitespace-pre-wrap', !lastText && 'text-faint')}>
-            {lastText || 'Your words will appear here.'}
-          </p>
+          <SectionHeading
+            action={
+              <>
+                {last && <Badge>{(last.inferenceMs / 1000).toFixed(2)} s on device</Badge>}
+                {lastText && (
+                  <>
+                    <ReadAloudButton id="dictation-last" title="Last transcript" text={lastText} />
+                    <CopyButton text={lastText} />
+                  </>
+                )}
+              </>
+            }
+          >
+            Last transcript
+          </SectionHeading>
+          {lastText ? (
+            <p data-selectable className="m-0 min-h-16 rounded-[6px] bg-sunken px-[22px] py-5 text-base leading-relaxed whitespace-pre-wrap">
+              {lastText}
+            </p>
+          ) : (
+            <EmptyState size="sm" title="Nothing dictated yet" description={`${shortcutHint}. The last take shows here until Inaudio closes.`} />
+          )}
           <p className="m-0 text-xs text-faint">Save history is off, so only the last take is kept, and only until Inaudio closes.</p>
         </section>
       )}
