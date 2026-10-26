@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { transcriptTitle } from '@shared/domain/history';
 import { Button } from '@renderer/components/ui/button';
 import { Drawer } from '@renderer/components/ui/drawer';
+import { EmptyState } from '@renderer/components/ui/empty-state';
 import { SOURCE_LABEL, TranscriptMenu, useTranscriptActions } from '@renderer/features/history/transcript-actions';
 import { TranscriptView } from '@renderer/features/history/transcript-view';
 import { formatDuration, formatWhen } from '@renderer/lib/format';
@@ -63,11 +64,11 @@ export function SavedSessionsDrawer({ open, onOpenChange }: { open: boolean; onO
         {item ? (
           <TranscriptView item={item} actions={actions} />
         ) : total === 0 ? (
-          <p className="px-5 py-6 text-sm text-muted">No live sessions saved yet. Stop a live transcript and it appears here.</p>
+          <EmptyState size="sm" title="No live sessions yet" description="Stop a live transcript and it is saved here." />
         ) : (
           <ul className="grid gap-1 p-2">
             {data?.items.map((session) => (
-              <li key={session.id} className="flex items-start gap-2 rounded-lg px-3 py-2.5 hover:bg-sunken">
+              <li key={session.id} className="flex items-start gap-2 rounded-[6px] px-3 py-2.5 hover:bg-sunken">
                 <button
                   type="button"
                   onClick={() => setSelected(session.id)}

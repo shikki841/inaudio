@@ -11,6 +11,7 @@ import {
   type HistoryUpdate,
   type Transcript,
 } from '@shared/domain/history';
+import type { ActivityKind, ActivityRow } from '@shared/history/stats';
 import { MIGRATIONS } from './history-migrations';
 
 /**
@@ -74,6 +75,8 @@ export class HistoryRepository {
   } | null;
   /** List and count statements, one pair per filter combination, prepared on first use. */
   private readonly lists = new Map<string, { page: StatementSync; count: StatementSync }>();
+  /** Activity statements per kind, prepared on first use. */
+  private readonly activities = new Map<ActivityKind, { rows: StatementSync; times: StatementSync }>();
 
   constructor(file: string) {
     this.jsonFile = `${file}.json`;
@@ -153,6 +156,32 @@ export class HistoryRepository {
       items: statements.page.all(...params, limit, offset).map(toTranscript),
       total: this.readCount(statements.count, ...params),
     };
+  }
+
+  /**
+   * What the activity numbers need: text, length and time of each transcript since `since`,
+   * and the creation time of every transcript of the kind for the longest streak. Only main
+   * reads these; the app window receives the counted result.
+   */
+  activity(kind: ActivityKind, since: number): { rows: ActivityRow[]; times: number[] } {
+    this.assertOpen();
+    if (!this.db) {
+      const items = this.jsonItems.filter((item) => matchesKind(item, kind));
+      return {
+        rows: items.filter((item) => item.createdAt >= since).map(({ text, durationMs, createdAt }) => ({ text, durationMs, createdAt })),
+        times: items.map((item) => item.createdAt),
+      };
+    }
+    const statements = this.activityStatements(kind);
+    const rows = statements.rows.all(since).flatMap((row) => {
+      const { text, duration_ms: durationMs, created_at: createdAt } = row as Record<string, unknown>;
+      return typeof text === 'string' && typeof durationMs === 'number' && typeof createdAt === 'number' ? [{ text, durationMs, createdAt }] : [];
+    });
+    const times = statements.times.all().flatMap((row) => {
+      const createdAt = (row as Record<string, unknown>).created_at;
+      return typeof createdAt === 'number' ? [createdAt] : [];
+    });
+    return { rows, times };
   }
 
   get(id: string): Transcript | null {
@@ -290,6 +319,18 @@ export class HistoryRepository {
       count: this.db.prepare(`SELECT count(*) AS n FROM transcripts t WHERE ${where}`),
     };
     this.lists.set(key, statements);
+    return statements;
+  }
+
+  private activityStatements(kind: ActivityKind): { rows: StatementSync; times: StatementSync } {
+    const cached = this.activities.get(kind);
+    if (cached) return cached;
+    if (!this.db) throw new Error('History database is not available');
+    const statements = {
+      rows: this.db.prepare(`SELECT t.text, t.duration_ms, t.created_at FROM transcripts t WHERE ${KIND_SQL[kind]} AND t.created_at >= ?`),
+      times: this.db.prepare(`SELECT t.created_at FROM transcripts t WHERE ${KIND_SQL[kind]}`),
+    };
+    this.activities.set(kind, statements);
     return statements;
   }
 

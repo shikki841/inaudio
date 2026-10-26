@@ -17,6 +17,15 @@ export function formatDuration(ms: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+/** "27 seconds", "42 minutes" or "1 h 12 minutes": time transcribed, at a glance. */
+export function formatSpan(ms: number): { value: string; unit: string } {
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 60) return { value: String(seconds), unit: seconds === 1 ? 'second' : 'seconds' };
+  const minutes = Math.round(ms / 60_000);
+  if (minutes < 60) return { value: String(minutes), unit: minutes === 1 ? 'minute' : 'minutes' };
+  return { value: `${Math.floor(minutes / 60)} h ${minutes % 60}`, unit: 'minutes' };
+}
+
 const dateTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 const time = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
 

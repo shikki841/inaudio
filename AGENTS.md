@@ -25,6 +25,15 @@
 - Microphone `media` permission requests are granted to the `main` surface only.
 - No `Co-Authored-By` trailers in commits or PRs.
 
+## Dictation, Live and Read Aloud pages
+- These pages are cardless with 6px corners: sections end in a hairline (`border-b`/`border-t border-line`), text sits in 6px `bg-sunken` wells, and only round controls (record, play) are round. Chart bars and heatmap cells use 2px.
+- Section headings use `SectionHeading` (`components/ui/layout.tsx`). Empty lists, ranges and drawers use `EmptyState` (`size="sm"` inside a section), never a bare line of text.
+- Async clicks use `useAction` (`lib/use-action.ts`) and `Button`/`IconButton` `loading`; copy buttons use `CopyButton` from `components/ui/activity.tsx`. Spinners are `Spinner` (`components/ui/spinner.tsx`), which holds still under reduced or off motion; do not use `animate-spin`.
+- Activity stats are counted in main: `history:stats` (`handleOn('main')`, `{ kind: 'dictation' | 'live', days: 7 | 30 }`) runs `activityOf()` from `src/shared/history/stats.ts` over `HistoryRepository.activity()` and returns numbers only. The renderer never pulls transcripts to count them; pages fetch only the recent rows they show. The query key lives under `['history']`, so history invalidation refreshes it.
+- `src/shared/history/stats.ts` has no value imports so `node --test` can load it; `domain/history.ts` re-exports its `wordCount`.
+- Read Aloud's player is a "now playing" bar: title and status left, Replay/previous/play/next/Stop with sentence segments and times in the middle, voice, a speed preset menu and volume right. Spoken-audio semantics: back and forward step by sentence, no shuffle or repeat. The exact speed slider lives in Settings (`settings-read-aloud-voice`).
+- `text:insert` and `clipboard:write` are `handleOn('main')`. The overlay, companion and live window never send text; give them a fixed action that main answers instead.
+
 ## Settings
 - Settings is a route with its own sidebar (`SettingsSidebar`, swapped in by `AppShell`): "Back to Inaudio" returns to `useUi().previousRoute`. Categories and the search index live in `features/settings/settings-nav.ts`; `openSettings(category, focusId)` opens a page and scrolls to a setting. Each section in `settings-page.tsx` renders only on its category.
 

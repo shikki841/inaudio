@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { MODEL_CATALOG, voiceSid, type ModelId } from '@shared/domain/models';
 import type { ExportFormat, Transcript } from '@shared/domain/history';
 import { exportFileName, exportTranscripts } from '@shared/history/export';
+import { activityOf, activitySince } from '@shared/history/stats';
 import type { TranscribeResult } from '@shared/ipc/api';
 import { EVENTS, IPC } from '@shared/ipc/channels';
 import { EXTERNAL_LINKS, schemas } from '@shared/ipc/schemas';
@@ -313,10 +314,13 @@ export function registerIpc(services: Services, requestQuit: () => Promise<void>
     services.overlay.setMenu(open);
   });
 
-  handle(IPC.textInsert, schemas.text, (text) =>
+  // Typing into the focused app and writing the clipboard belong to the app window alone. The
+  // overlay, the companion and the live window never send text; the live window's Copy is a
+  // fixed action that main answers from its own transcript.
+  handleOn('main', IPC.textInsert, schemas.text, (text) =>
     inserter.insert(text, { restoreClipboard: settings.get().dictation.restoreClipboard }),
   );
-  handle(IPC.clipboardWrite, schemas.text, (text) => inserter.copy(text));
+  handleOn('main', IPC.clipboardWrite, schemas.text, (text) => inserter.copy(text));
 
   handleOn('main', IPC.readAloudGet, none, () => services.readAloud.snapshot());
   handleOn('main', IPC.readAloudStart, schemas.readAloudStart, (input) => services.readAloud.start(input));
@@ -350,6 +354,11 @@ export function registerIpc(services: Services, requestQuit: () => Promise<void>
     const saved = history.update(id, patch);
     services.send(EVENTS.historyChanged, null);
     return saved;
+  });
+  handleOn('main', IPC.historyStats, schemas.historyStats, ({ kind, days }) => {
+    const now = Date.now();
+    const { rows, times } = history.activity(kind, activitySince(now, days));
+    return activityOf(rows, times, { now, days });
   });
   handleOn('main', IPC.historyExport, schemas.historyExport, async ({ ids, kind, format }) => {
     const items = ids ? history.getMany(ids) : history.all(kind);

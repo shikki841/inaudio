@@ -18,6 +18,7 @@ export function Select<T extends string>({
   label,
   placeholder,
   className,
+  contentClassName,
   disabled,
 }: {
   value: T | undefined;
@@ -26,6 +27,8 @@ export function Select<T extends string>({
   label: string;
   placeholder?: string;
   className?: string;
+  /** Extra classes for the open list, e.g. a page that draws its popovers at 6px. */
+  contentClassName?: string;
   disabled?: boolean;
 }) {
   return (
@@ -49,7 +52,10 @@ export function Select<T extends string>({
         <SelectPrimitive.Content
           position="popper"
           sideOffset={4}
-          className="z-50 max-h-80 min-w-(--radix-select-trigger-width) overflow-hidden rounded-[12px] border border-line bg-surface p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)]"
+          className={cn(
+            'z-50 max-h-80 min-w-(--radix-select-trigger-width) overflow-hidden rounded-[12px] border border-line bg-surface p-1 shadow-[0_8px_24px_rgb(0_0_0/0.12)]',
+            contentClassName,
+          )}
         >
           <SelectPrimitive.Viewport>
             {options.map((option) => (

@@ -66,6 +66,4 @@ export function transcriptTitle(item: Pick<Transcript, 'title' | 'text'>, max = 
   return `${(space > max / 2 ? cut.slice(0, space) : cut).replace(/[,.;:]$/, '')}…`;
 }
 
-export function wordCount(text: string): number {
-  return text.split(/\s+/).filter(Boolean).length;
-}
+export { wordCount } from '../history/stats';

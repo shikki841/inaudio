@@ -1,5 +1,6 @@
-import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { HistoryQuery } from '@shared/domain/history';
+import type { ActivityKind, ActivityRange } from '@shared/history/stats';
 import type { ModelId } from '@shared/domain/models';
 import type { Settings, SettingsPatch } from '@shared/domain/settings';
 import type { UpdateStatus, ReleaseNotesResult } from '@shared/domain/update';
@@ -18,6 +19,7 @@ export const keys = {
   models: ['models'] as const,
   history: (query: HistoryQuery) => ['history', query] as const,
   historyAll: ['history'] as const,
+  historyStats: (kind: ActivityKind, days: ActivityRange) => ['history', 'stats', kind, days] as const,
 };
 
 export function useSettings() {
@@ -96,6 +98,17 @@ export function useUpdateActions() {
 
 export function useHistory(query: HistoryQuery) {
   return useQuery({ queryKey: keys.history(query), queryFn: () => api.history.list(query), staleTime: 0 });
+}
+
+/** Activity numbers counted in main. Lives under the history key, so every save or delete refreshes it. */
+export function useHistoryStats(kind: ActivityKind, days: ActivityRange, enabled = true) {
+  return useQuery({
+    queryKey: keys.historyStats(kind, days),
+    queryFn: () => api.history.stats({ kind, days }),
+    staleTime: 0,
+    enabled,
+    placeholderData: keepPreviousData,
+  });
 }
 
 export function useModelAction() {

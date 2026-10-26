@@ -1,18 +1,21 @@
-import { Copy, History, Loader2, MonitorSpeaker, PictureInPicture2, Square, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDown, History, MonitorSpeaker, PictureInPicture2, Square, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { needsDisplayCapture, type LiveSource } from '@shared/domain/capture';
+import { wordCount } from '@shared/domain/history';
 import { MODEL_CATALOG } from '@shared/domain/models';
-import { LevelWave, RecentItem, Stat, WeekBars } from '@renderer/components/ui/activity';
+import { ActivityStats, CopyButton, LevelWave, RecentItem } from '@renderer/components/ui/activity';
 import { Button } from '@renderer/components/ui/button';
-import { IconButton } from '@renderer/components/ui/icon-button';
-import { Badge, Kbd, Notice, PageHeader } from '@renderer/components/ui/layout';
+import { EmptyState } from '@renderer/components/ui/empty-state';
+import { Badge, Kbd, Notice, PageHeader, SectionHeading } from '@renderer/components/ui/layout';
 import { Segmented } from '@renderer/components/ui/segmented';
+import { Spinner } from '@renderer/components/ui/spinner';
 import { ReadAloudButton } from '@renderer/features/read-aloud/read-aloud-controls';
 import { api } from '@renderer/lib/api';
 import { cn } from '@renderer/lib/cn';
 import { formatAccelerator, formatDuration, groupByDay } from '@renderer/lib/format';
 import { useHistory, useSettings, useSystemStatus, useUpdateSettings } from '@renderer/lib/queries';
-import { weekOf } from '@renderer/lib/week';
+import { useAction } from '@renderer/lib/use-action';
+import { useElapsed } from '@renderer/lib/use-elapsed';
 import { useUi } from '@renderer/stores/ui-store';
 import { ConsentDialog } from './consent-dialog';
 import { useLive } from './live-store';
@@ -26,44 +29,33 @@ const SOURCES: { value: LiveSource; label: string }[] = [
   { value: 'device', label: 'Audio device' },
 ];
 
-function useElapsed(startedAt: number) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    if (!startedAt) return;
-    const id = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(id);
-  }, [startedAt]);
-  return startedAt ? now - startedAt : 0;
-}
-
 /** Only the waveform follows the input level, so the page does not re-render with it. */
 function LiveWave({ active, busy }: { active: boolean; busy: boolean }) {
   const level = useLive((s) => (active ? s.level : 0));
   return <LevelWave level={level} active={active} busy={busy} />;
 }
 
-/** "27 seconds", "42 minutes" or "1 h 12 minutes": time transcribed, at a glance. */
-function formatSpan(ms: number): { value: string; unit: string } {
-  const seconds = Math.round(ms / 1000);
-  if (seconds < 60) return { value: String(seconds), unit: seconds === 1 ? 'second' : 'seconds' };
-  const minutes = Math.round(ms / 60_000);
-  if (minutes < 60) return { value: String(minutes), unit: minutes === 1 ? 'minute' : 'minutes' };
-  return { value: `${Math.floor(minutes / 60)} h ${minutes % 60}`, unit: 'minutes' };
-}
-
-/** Keeps the end of a growing transcript in view, unless the reader has scrolled up. */
+/**
+ * Keeps the end of a growing transcript in view, unless the reader has scrolled up; then
+ * `pinned` is false until they jump back or scroll to the end themselves.
+ */
 function useFollow(text: string, follow: boolean) {
   const box = useRef<HTMLDivElement>(null);
-  const pinned = useRef(true);
+  const [pinned, setPinned] = useState(true);
   useEffect(() => {
     const el = box.current;
-    if (el && follow && pinned.current) el.scrollTop = el.scrollHeight;
-  }, [text, follow]);
+    if (el && follow && pinned) el.scrollTop = el.scrollHeight;
+  }, [text, follow, pinned]);
   const onScroll = () => {
     const el = box.current;
-    if (el) pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    if (el) setPinned(el.scrollHeight - el.scrollTop - el.clientHeight < 40);
   };
-  return { box, onScroll };
+  const jump = () => {
+    const el = box.current;
+    if (el) el.scrollTop = el.scrollHeight;
+    setPinned(true);
+  };
+  return { box, onScroll, pinned, jump };
 }
 
 export function LivePage() {
@@ -77,9 +69,9 @@ export function LivePage() {
   const navigate = useUi((s) => s.navigate);
   const [asking, setAsking] = useState(false);
   const [sessions, setSessions] = useState(false);
+  const popOut = useAction(() => api.live.openWindow());
   const elapsed = useElapsed(live.phase === 'capturing' ? live.startedAt : 0);
-  const { data: history } = useHistory({ kind: 'live', limit: 200, offset: 0 });
-  const week = useMemo(() => weekOf(history?.items ?? []), [history]);
+  const { data: history } = useHistory({ kind: 'live', limit: RECENT, offset: 0 });
   const follow = useFollow(live.text + live.preview, live.phase === 'capturing');
   if (!settings || !status) return null;
 
@@ -130,8 +122,10 @@ export function LivePage() {
         : 'Ready';
   const pendingSeconds = Math.ceil(live.pendingMs / 1000);
   const hasText = live.text.length > 0;
-  const recent = (history?.items ?? []).slice(0, RECENT);
-  const span = week.ms ? formatSpan(week.ms) : undefined;
+  const words = hasText ? wordCount(live.text) : 0;
+  const paragraphs = hasText ? live.text.split(/\n{2,}/) : [];
+  const interim = active ? live.preview : '';
+  const recent = history?.items ?? [];
   const showTranscript = active || hasText || (live.phase !== 'error' && !!live.message);
 
   return (
@@ -144,7 +138,7 @@ export function LivePage() {
             <Button size="sm" onClick={() => setSessions(true)}>
               <History /> Saved sessions
             </Button>
-            <Button size="sm" onClick={() => void api.live.openWindow()}>
+            <Button size="sm" loading={popOut.pending} onClick={() => void popOut.run()}>
               <PictureInPicture2 /> Pop out
             </Button>
           </>
@@ -182,12 +176,13 @@ export function LivePage() {
         <Notice tone="danger">{requestError ?? live.message}</Notice>
       )}
 
-      <section className="grid grid-cols-[auto_1fr] items-center gap-7 rounded-[16px] border border-line bg-sunken px-7 py-6">
+      <section aria-label="Live transcript" className="grid grid-cols-[auto_1fr] items-center gap-7 border-b border-line pb-6">
         <button
           type="button"
           onClick={onPress}
           disabled={!available || !installed || starting || finishing}
           aria-pressed={capturing}
+          aria-busy={starting || finishing || undefined}
           aria-label={capturing ? 'Stop live transcript' : 'Start live transcript'}
           className={cn(
             'relative grid size-24 place-items-center rounded-full outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:opacity-40',
@@ -195,7 +190,7 @@ export function LivePage() {
           )}
         >
           {starting || finishing ? (
-            <Loader2 aria-hidden className={cn('size-9', settings.appearance.animations === 'full' && 'animate-spin')} />
+            <Spinner className="size-9" />
           ) : capturing ? (
             <Square aria-hidden className="size-8 fill-current" />
           ) : (
@@ -203,7 +198,7 @@ export function LivePage() {
           )}
         </button>
         <div className="grid min-w-0 gap-3">
-          <div aria-live="polite" className="flex items-baseline gap-3">
+          <div aria-live="polite" className="flex min-h-8 items-baseline gap-3">
             <span className="truncate text-xl font-semibold">{label}</span>
             {capturing && <span className="font-mono text-sm text-muted tabular-nums">{formatDuration(elapsed)}</span>}
             <span className="flex-1" />
@@ -245,40 +240,63 @@ export function LivePage() {
 
       {showTranscript && (
         <section className="grid gap-3">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="m-0 text-sm font-semibold tracking-wide text-faint uppercase">{active ? 'Transcript' : 'Last transcript'}</h2>
-            <div className="flex items-center gap-1.5">
-              {!active && live.savedId && <Badge>Saved to History · {formatDuration(live.durationMs)}</Badge>}
-              {hasText && !active && <ReadAloudButton id={live.savedId ?? 'live-last'} title="Live transcript" text={live.text} />}
-              {hasText && (
-                <IconButton label="Copy transcript" size="icon-sm" onClick={() => void api.text.copy(live.text)}>
-                  <Copy />
-                </IconButton>
-              )}
-            </div>
-          </div>
+          <SectionHeading
+            action={
+              <>
+                {active && hasText && (
+                  <span className="text-xs text-faint tabular-nums">
+                    {words.toLocaleString()} {words === 1 ? 'word' : 'words'}
+                    {capturing && ` · ${formatDuration(elapsed)}`}
+                  </span>
+                )}
+                {!active && live.savedId && <Badge>Saved to History · {formatDuration(live.durationMs)}</Badge>}
+                {hasText && !active && <ReadAloudButton id={live.savedId ?? 'live-last'} title="Live transcript" text={live.text} />}
+                {hasText && <CopyButton text={live.text} />}
+              </>
+            }
+          >
+            {active ? 'Transcript' : 'Last transcript'}
+          </SectionHeading>
           {!active && live.phase !== 'error' && live.message && <Notice tone="neutral">{live.message}</Notice>}
           {(active || hasText) && (
-            <div
-              ref={follow.box}
-              onScroll={follow.onScroll}
-              data-selectable
-              className={cn(
-                'app-scroll-area max-h-[28rem] min-h-32 overflow-y-auto rounded-[16px] border border-line bg-surface px-[22px] py-5 text-[17px] leading-[1.75] break-words whitespace-pre-wrap',
-                !hasText && 'text-faint',
-              )}
-            >
-              {hasText ? live.text : capturing && !live.preview ? 'Listening. Text appears as it is heard.' : null}
-              {active && live.preview && (
-                <span className="text-faint">
-                  {hasText && '\n\n'}
-                  {live.preview}
-                </span>
+            <div className="relative">
+              <div
+                ref={follow.box}
+                onScroll={follow.onScroll}
+                data-selectable
+                tabIndex={0}
+                aria-label="Transcript"
+                className="app-scroll-area max-h-[28rem] min-h-32 overflow-y-auto rounded-[6px] bg-sunken px-[22px] py-5 text-[17px] leading-[1.75] break-words whitespace-pre-wrap outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                {paragraphs.map((paragraph, index) => (
+                  <p key={index} className="m-0 mb-3.5 last:mb-0">
+                    {paragraph}
+                    {index === paragraphs.length - 1 && interim && <Interim text={interim} caret={capturing} spaced />}
+                  </p>
+                ))}
+                {!hasText &&
+                  (interim ? (
+                    <p className="m-0">
+                      <Interim text={interim} caret={capturing} />
+                    </p>
+                  ) : (
+                    capturing && <p className="m-0 text-faint">Listening. Text appears as it is heard.</p>
+                  ))}
+              </div>
+              {active && !follow.pinned && (
+                <Button
+                  size="sm"
+                  onClick={follow.jump}
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-surface shadow-[0_0_0_1px_var(--line),0_6px_16px_rgb(0_0_0/0.08)] hover:bg-surface"
+                >
+                  <ArrowDown /> Jump to latest
+                </Button>
               )}
             </div>
           )}
           {active && pendingSeconds > 0 && (
-            <p className="m-0 text-sm text-faint">
+            <p className="m-0 flex items-center gap-2 text-sm text-faint">
+              <Spinner className="size-4" />
               Transcribing the last {pendingSeconds === 1 ? 'second' : `${pendingSeconds} seconds`}…
             </p>
           )}
@@ -287,39 +305,45 @@ export function LivePage() {
 
       {settings.live.saveHistory && (
         <>
-          <section aria-label="The last seven days" className="grid grid-cols-[1.3fr_1fr_1fr] gap-3">
-            <Stat label="Words this week" value={week.words.toLocaleString()}>
-              <WeekBars days={week.days} />
-            </Stat>
-            <Stat label="Sessions" value={week.takes.toLocaleString()} />
-            <Stat label="Time transcribed" value={span?.value ?? '–'} unit={span?.unit} />
-          </section>
+          <ActivityStats kind="live" />
 
           <section className="grid gap-1">
             {recent.length ? (
               groupByDay(recent).map((group, index) => (
                 <div key={group.day} className="grid gap-1">
-                  <div className="flex min-h-8 items-center justify-between">
-                    <h2 className="m-0 text-sm font-semibold tracking-wide text-faint uppercase">{group.day}</h2>
-                    {index === 0 && (
-                      <Button variant="ghost" size="sm" onClick={() => setSessions(true)}>
-                        All sessions
-                      </Button>
-                    )}
-                  </div>
-                  <ul className="m-0 grid list-none gap-0.5 p-0">
+                  <SectionHeading
+                    action={
+                      index === 0 && (
+                        <Button variant="ghost" size="sm" onClick={() => setSessions(true)}>
+                          All sessions
+                        </Button>
+                      )
+                    }
+                  >
+                    {group.day}
+                  </SectionHeading>
+                  <ul className="m-0 grid list-none gap-1 p-0">
                     {group.items.map((item) => (
                       <RecentItem key={item.id} item={item} clamp />
                     ))}
                   </ul>
                 </div>
               ))
-            ) : (
+            ) : history ? (
               <>
-                <h2 className="m-0 text-sm font-semibold tracking-wide text-faint uppercase">Recent sessions</h2>
-                <p className="m-0 px-3.5 py-3 text-base text-faint">Your transcripts appear here after you stop a session.</p>
+                <SectionHeading>Recent sessions</SectionHeading>
+                <EmptyState
+                  size="sm"
+                  title="No live sessions yet"
+                  description="Your transcripts appear here after you stop a session."
+                  action={
+                    <Button variant="ghost" size="sm" onClick={() => navigate('history')}>
+                      Open History
+                    </Button>
+                  }
+                />
               </>
-            )}
+            ) : null}
           </section>
         </>
       )}
@@ -327,5 +351,16 @@ export function LivePage() {
       <ConsentDialog open={asking || consent !== null} onCancel={onCancelConsent} onConfirm={onConfirm} />
       <SavedSessionsDrawer open={sessions} onOpenChange={setSessions} />
     </div>
+  );
+}
+
+/** The stretch still being heard: lighter, swapped whole each time, with a caret while recording. */
+function Interim({ text, caret, spaced = false }: { text: string; caret: boolean; spaced?: boolean }) {
+  return (
+    <span className="text-faint">
+      {spaced ? ' ' : ''}
+      {text}
+      {caret && <span aria-hidden className="live-caret ml-0.5 inline-block h-[1.05em] w-0.5 bg-accent align-[-0.15em]" />}
+    </span>
   );
 }
