@@ -15,6 +15,7 @@ export function Billboard({
   hero,
   heroClassName,
   stepKey,
+  heroKey,
   title,
   description,
   children,
@@ -30,6 +31,8 @@ export function Billboard({
   heroClassName?: string;
   /** Changing it slides the hero and copy to the next step. */
   stepKey?: string | number;
+  /** Changing it swaps the hero; defaults to `stepKey`. A fixed key keeps one hero across steps. */
+  heroKey?: string | number;
   title: ReactNode;
   description?: ReactNode;
   children?: ReactNode;
@@ -62,7 +65,7 @@ export function Billboard({
             <div aria-hidden className={cn('relative h-[210px] shrink-0 overflow-hidden bg-accent-soft', heroClassName)}>
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
-                  key={stepKey ?? 'hero'}
+                  key={heroKey ?? stepKey ?? 'hero'}
                   className="absolute inset-0"
                   initial={{ opacity: 0, scale: 1.04 }}
                   animate={{ opacity: 1, scale: 1 }}

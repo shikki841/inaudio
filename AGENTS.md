@@ -38,7 +38,7 @@
 - Settings is a route with its own sidebar (`SettingsSidebar`, swapped in by `AppShell`): "Back to Inaudio" returns to `useUi().previousRoute`. Categories and the search index live in `features/settings/settings-nav.ts`; `openSettings(category, focusId)` opens a page and scrolls to a setting. Each section in `settings-page.tsx` renders only on its category.
 
 ## Onboarding
-- Setup is a non-dismissible `Billboard` (`components/ui/billboard.tsx`) over `<AppShell backdrop>`, which is inert and always shows the app sidebar without window controls; setup draws its own minimize and close. Hero scenes in `features/tour/hero-scenes.tsx` animate with `transform` only (Tailwind v4 centers with the `translate` property) and stop under reduced or off motion.
+- Setup is a non-dismissible `Billboard` (`components/ui/billboard.tsx`) over `<AppShell backdrop>`, which is inert and always shows the app sidebar without window controls; setup draws its own minimize and close. Every billboard hero (setup, what's new, release notes) is the plain `CloudShader` at `h-[168px]`, with no SVG illustrations on top; setup passes a fixed `heroKey` so the clouds stay in place while the steps change.
 
 ## Navigation
 - Sidebar icons are the same Lucide icons drawn as motion components in `components/icons/motion-icons.tsx` (motion from the MIT AnimateIcons set; Settings2 is ours). They play once on hover, keyboard focus and when their page opens, never under reduced/off motion or the system setting. Recording, live capture and reading show a `Waveform` (`components/ui/waveform.tsx`), not a red dot; under reduced motion the bars hold still and the label carries the state.

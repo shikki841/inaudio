@@ -11,7 +11,6 @@ import { Select } from '@renderer/components/ui/select';
 import { Switch } from '@renderer/components/ui/switch';
 import { useMediaDevices } from '@renderer/features/audio/use-devices';
 import { DictationPage } from '@renderer/features/dictation/dictation-page';
-import { LiveScene, MicrophoneScene, ModelsScene, OverlayScene, WelcomeScene } from '@renderer/features/tour/hero-scenes';
 import { Recorder } from '@renderer/features/dictation/audio/recorder';
 import { LevelMeter } from '@renderer/features/dictation/level-meter';
 import { ModelRow } from '@renderer/features/models/model-row';
@@ -192,43 +191,39 @@ const STEPS = [
     id: 'welcome',
     title: 'Talk instead of typing.',
     description: 'Inaudio turns speech into text in any app and reads text back to you. Everything runs on this computer: no account, no cloud.',
-    hero: <WelcomeScene />,
     body: null,
   },
   {
     id: 'microphone',
     title: 'Check your microphone',
     description: 'Inaudio needs microphone access. Audio is processed on this computer and never uploaded.',
-    hero: <MicrophoneScene />,
     body: <MicrophoneStep />,
   },
   {
     id: 'models',
     title: 'Download a speech model',
     description: 'Download a speech model once; it then works offline. Read Aloud is optional.',
-    hero: <ModelsScene />,
     body: <ModelsStep />,
   },
   {
     id: 'live',
     title: 'Transcribe what your computer plays',
     description: 'Meetings, videos, lectures. Audio stays on this computer and is never saved. You can change any of this later.',
-    hero: <LiveScene />,
     body: <LiveStep />,
   },
   {
     id: 'overlay',
     title: 'A small pill shows what is happening',
     description: 'It sits at the edge of the screen while you dictate, showing whether Inaudio is listening and the controls you reach for.',
-    hero: <OverlayScene />,
     body: <OverlayStep />,
   },
 ] as const;
 
 /**
  * Setup runs as a billboard over the app itself: the workspace waits, dimmed, underneath,
- * and each step leads with a small animation of what it sets up. The window can still be
- * minimized or closed; nothing else outside the steps reacts until setup is done.
+ * under the same cloud hero as the other announcements, kept in place while the steps
+ * change. The window can still be minimized or closed; nothing else outside the steps
+ * reacts until setup is done.
  */
 export function SetupFlow() {
   const [step, setStep] = useState(0);
@@ -272,7 +267,9 @@ export function SetupFlow() {
         dismissible={false}
         label="Set up Inaudio"
         stepKey={current.id}
-        hero={<CloudShader className="size-full">{current.hero}</CloudShader>}
+        heroKey="setup"
+        heroClassName="h-[168px]"
+        hero={<CloudShader className="size-full" />}
         title={current.title}
         description={current.description}
         footer={
